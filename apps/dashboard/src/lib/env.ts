@@ -1,6 +1,6 @@
 import "server-only";
 
-import { loadNearestEnvFile } from "@lunaecho/core";
+import { loadNearestEnvFile, runtimeModes } from "@lunaecho/core";
 import { z } from "zod";
 
 loadNearestEnvFile(process.cwd());
@@ -13,6 +13,8 @@ const environmentSchema = z.object({
   DISCORD_APPLICATION_ID: z.string().regex(/^\d{17,20}$/, "must be a Discord snowflake"),
   DISCORD_CLIENT_SECRET: z.string().min(1, "is required for the Discord login"),
   DISCORD_TOKEN: z.string().min(1, "is required"),
+  /** Must match the bot's mode, so both agree on each server's plan. */
+  LUNA_RUNTIME_MODE: z.enum(runtimeModes).default("self-hosted"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   SESSION_SECRET: z.string().min(32, "must contain at least 32 characters"),
 });

@@ -1,0 +1,63 @@
+# LunaEcho Cloud: the official shared bot, its dashboard, and their database.
+#
+# Lives next to a .env (see .env.example) on the server. Only the dashboard publishes a port,
+# and only on 127.0.0.1: the host's nginx terminates TLS and forwards to it. Docker publishes
+# ports past ufw, so nothing here may listen on a public address.
+#
+# Cloud has no Music, so it needs no Lavalink.
+
+name: lunaecho-cloud
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lunaecho
+      POSTGRES_USER: lunaecho
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lunaecho -d lunaecho"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 384m
+
+  bot:
+    image: lunaecho-bot:${LUNAECHO_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://lunaecho:${POSTGRES_PASSWORD}@postgres:5432/lunaecho
+      LUNA_RUNTIME_MODE: cloud-shared
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  dashboard:
+    image: lunaecho-dashboard:${LUNAECHO_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://lunaecho:${POSTGRES_PASSWORD}@postgres:5432/lunaecho
+      LUNA_RUNTIME_MODE: cloud-shared
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3100:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+volumes:
+  postgres-data:

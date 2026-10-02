@@ -36,7 +36,7 @@ describe("loadConfig", () => {
       DATABASE_URL: "mysql://lunaecho:secret-password@localhost/lunaecho",
       DISCORD_APPLICATION_ID: "not-a-snowflake",
       DISCORD_TOKEN: "",
-      LUNA_RUNTIME_MODE: "cloud-custom",
+      LUNA_RUNTIME_MODE: "enterprise",
     };
 
     expect(() => loadConfig(environment)).toThrow(ConfigurationError);
@@ -47,7 +47,20 @@ describe("loadConfig", () => {
       expect(error).toBeInstanceOf(ConfigurationError);
       expect((error as ConfigurationError).issues).toHaveLength(4);
       expect((error as Error).message).not.toContain("secret-password");
-      expect((error as Error).message).not.toContain("cloud-custom: ");
+      expect((error as Error).message).not.toContain("enterprise: ");
+    }
+  });
+
+  it("accepts the Cloud and Custom runtime modes", () => {
+    for (const mode of ["cloud-shared", "cloud-custom"] as const) {
+      expect(
+        loadConfig({
+          DATABASE_URL: "postgres://lunaecho:password@localhost:5432/lunaecho",
+          DISCORD_APPLICATION_ID: "123456789012345678",
+          DISCORD_TOKEN: "test-token",
+          LUNA_RUNTIME_MODE: mode,
+        }).runtimeMode,
+      ).toBe(mode);
     }
   });
 

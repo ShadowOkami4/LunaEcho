@@ -1,6 +1,6 @@
 import {
   EntitlementService,
-  SelfHostedEntitlementProvider,
+  createRuntimeEntitlementProvider,
   type AppLogger,
   type ModuleId,
 } from "@lunaecho/core";
@@ -46,7 +46,7 @@ export async function createApplication(
   logger: AppLogger,
 ): Promise<LunaApplication> {
   const databaseLogger = logger.child({ component: "database" });
-  const entitlements = new EntitlementService(new SelfHostedEntitlementProvider());
+  const entitlements = new EntitlementService(createRuntimeEntitlementProvider(config.runtimeMode));
   const database = await connectDatabase({
     connectionString: config.databaseUrl,
     onPoolError: (error) => {

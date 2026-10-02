@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EntitlementService, SelfHostedEntitlementProvider } from "@lunaecho/core";
+import { createRuntimeEntitlementProvider, EntitlementService } from "@lunaecho/core";
 import { connectDatabase, type DatabaseConnection } from "@lunaecho/db";
 import {
   AutomationService,
@@ -63,7 +63,7 @@ async function createServices(): Promise<DashboardServices> {
   // Pages call invalidate() before reading, so they show what the bot stored a moment ago too.
   return {
     automation: new AutomationService(db),
-    entitlements: new EntitlementService(new SelfHostedEntitlementProvider()),
+    entitlements: new EntitlementService(createRuntimeEntitlementProvider(env().LUNA_RUNTIME_MODE)),
     levels: new LevelService(db),
     logs: new LogSettingsService(db),
     moderationCases: new ModerationActionService(

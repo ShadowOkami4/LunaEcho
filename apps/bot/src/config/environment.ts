@@ -1,4 +1,4 @@
-import { logLevels, type LogLevel, type RuntimeMode } from "@lunaecho/core";
+import { logLevels, runtimeModes, type LogLevel, type RuntimeMode } from "@lunaecho/core";
 import { z } from "zod";
 
 const environmentSchema = z.object({
@@ -43,8 +43,11 @@ const environmentSchema = z.object({
     .trim()
     .regex(/^[a-z]+(?:,[a-z]+)*$/, "must be comma-separated search prefixes such as ytsearch")
     .default("ytsearch,scsearch"),
-  // Cloud and Custom are started from private infrastructure, never by an environment switch.
-  LUNA_RUNTIME_MODE: z.literal("self-hosted").default("self-hosted"),
+  /**
+   * Which deployment this is. It only decides the plan servers get: Cloud withholds some modules,
+   * Custom and Self-Hosted include all of them, so the switch cannot unlock anything.
+   */
+  LUNA_RUNTIME_MODE: z.enum(runtimeModes).default("self-hosted"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
@@ -62,7 +65,7 @@ export type AppConfig = Readonly<{
   music: Readonly<{ maximumSessions: number; searchSources: readonly string[] }>;
   twitch: Readonly<{ clientId: string; clientSecret: string }> | undefined;
   nodeEnvironment: z.infer<typeof environmentSchema>["NODE_ENV"];
-  runtimeMode: Extract<RuntimeMode, "self-hosted">;
+  runtimeMode: RuntimeMode;
   service: "lunaecho-bot";
 }>;
 

@@ -19,6 +19,11 @@ export {
 } from "./entitlements/entitlement-service.js";
 export { getPlanPolicy, planCatalog } from "./entitlements/plan-catalog.js";
 export { SelfHostedEntitlementProvider } from "./entitlements/self-hosted-entitlement-provider.js";
+export {
+  createRuntimeEntitlementProvider,
+  FixedPlanEntitlementProvider,
+  planForRuntimeMode,
+} from "./entitlements/runtime-entitlement-provider.js";
 export { toError } from "./errors/to-error.js";
 export {
   createLogger,
