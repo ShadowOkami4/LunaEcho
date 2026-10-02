@@ -1,0 +1,26 @@
+{
+  "name": "@lunaecho/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared LunaEcho platform primitives: modules, runtime modes, entitlements, and logging.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "pino-pretty": "13.1.3"
+  }
+}

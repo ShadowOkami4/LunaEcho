@@ -1,0 +1,47 @@
+# Development services for LunaEcho. The bot itself still runs with `npm run dev`;
+# a complete self-hosting stack belongs to the Self-Hosted Alpha roadmap phase.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lunaecho
+      POSTGRES_PASSWORD: lunaecho
+      POSTGRES_USER: lunaecho
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - lunaecho-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lunaecho -d lunaecho"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Audio node for the Music module; the bot connects with LAVALINK_URL=localhost:2333.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    restart: unless-stopped
+    environment:
+      _JAVA_OPTIONS: -Xmx1G
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
+      YT_CIPHER_TOKEN: ${YT_CIPHER_TOKEN:-lunaecho-local-cipher}
+    ports:
+      - "127.0.0.1:2333:2333"
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/plugins:/opt/Lavalink/plugins:ro
+    depends_on:
+      - yt-cipher
+
+  # Deciphers YouTube's player signatures for the YouTube plugin, which can no longer keep up with
+  # YouTube's frequent player changes on its own. Reachable only inside the compose network.
+  yt-cipher:
+    image: ghcr.io/kikkia/yt-cipher:master
+    restart: unless-stopped
+    environment:
+      API_TOKEN: ${YT_CIPHER_TOKEN:-lunaecho-local-cipher}
+      OVERRIDE_PLAYER_VARIANT: IAS
+
+volumes:
+  lunaecho-postgres:

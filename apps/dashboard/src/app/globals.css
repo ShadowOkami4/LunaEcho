@@ -1,0 +1,867 @@
+@import "tailwindcss";
+
+/*
+ * LunaEcho dashboard: Material 3 Expressive, in the same design language as
+ * shadowokami.com/LunaEcho. Colour roles are the LunaEcho M3 scheme (seed #ff85d2,
+ * tertiary #8bc7ff), type is Roboto Flex with a condensed display width, and
+ * shapes and springs come from the same token set as the product page.
+ */
+
+@font-face {
+  font-family: "Roboto Flex";
+  src: url("/fonts/roboto-flex-latin.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Roboto Flex";
+  src: url("/fonts/roboto-flex-latin-ext.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  font-display: swap;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@theme {
+  /* Surfaces, lowest to highest. */
+  --color-background: #140c10;
+  --color-surface-lowest: #140c10;
+  --color-surface-low: #22191e;
+  --color-surface: #261d22;
+  --color-surface-high: #31272c;
+  --color-surface-highest: #3c3237;
+  --color-surface-bright: #41363b;
+  --color-on-surface: #efdee5;
+  --color-muted: #d8c0cb;
+  --color-faint: #a08b95;
+  --color-outline: #53424b;
+  --color-outline-strong: #a08b95;
+
+  /* Accent roles. */
+  --color-primary: #ffb4de;
+  --color-primary-strong: #ff85d2;
+  --color-on-primary: #600049;
+  --color-primary-container: #ff85d2;
+  --color-on-primary-container: #7b125f;
+  --color-secondary-container: #683a56;
+  --color-on-secondary-container: #ffd8eb;
+  --color-tertiary: #9ecfff;
+  --color-tertiary-container: #78b4eb;
+  --color-on-tertiary-container: #00456e;
+  --color-success: #8fe3b0;
+  --color-success-container: #0f5132;
+  --color-danger: #ffb4ab;
+  --color-danger-container: #93000a;
+  --color-on-danger-container: #ffdad6;
+
+  /* Shape scale (M3 Expressive corner tokens). */
+  --radius-m3-sm: 8px;
+  --radius-m3-md: 12px;
+  --radius-m3-lg: 16px;
+  --radius-m3-xl: 28px;
+  --radius-m3-xl-inc: 32px;
+  --radius-m3-xxl: 48px;
+
+  --font-sans: "Roboto Flex", "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Motion: M3 Expressive springs as cubic-bezier approximations. */
+  --spring-fast: cubic-bezier(0.3, 1.18, 0.4, 1);
+  --spring-fast-duration: 420ms;
+  --spring-default: cubic-bezier(0.28, 1.12, 0.32, 1);
+  --spring-default-duration: 600ms;
+  --effects: cubic-bezier(0.4, 0, 0.2, 1);
+  --effects-duration: 260ms;
+
+  /* Expressive shapes, generated from the M3 shape library for the product page. */
+  --shape-cookie4: polygon(
+    50% 0%,
+    54.34% 0.43%,
+    58.52% 1.68%,
+    62.42% 3.64%,
+    65.97% 6.12%,
+    69.15% 8.94%,
+    72% 11.89%,
+    74.63% 14.83%,
+    77.15% 17.64%,
+    79.7% 20.3%,
+    82.36% 22.85%,
+    85.17% 25.37%,
+    88.11% 28%,
+    91.06% 30.85%,
+    93.88% 34.03%,
+    96.36% 37.58%,
+    98.32% 41.48%,
+    99.57% 45.66%,
+    100% 50%,
+    99.57% 54.34%,
+    98.32% 58.52%,
+    96.36% 62.42%,
+    93.88% 65.97%,
+    91.06% 69.15%,
+    88.11% 72%,
+    85.17% 74.63%,
+    82.36% 77.15%,
+    79.7% 79.7%,
+    77.15% 82.36%,
+    74.63% 85.17%,
+    72% 88.11%,
+    69.15% 91.06%,
+    65.97% 93.88%,
+    62.42% 96.36%,
+    58.52% 98.32%,
+    54.34% 99.57%,
+    50% 100%,
+    45.66% 99.57%,
+    41.48% 98.32%,
+    37.58% 96.36%,
+    34.03% 93.88%,
+    30.85% 91.06%,
+    28% 88.11%,
+    25.37% 85.17%,
+    22.85% 82.36%,
+    20.3% 79.7%,
+    17.64% 77.15%,
+    14.83% 74.63%,
+    11.89% 72%,
+    8.94% 69.15%,
+    6.12% 65.97%,
+    3.64% 62.42%,
+    1.68% 58.52%,
+    0.43% 54.34%,
+    0% 50%,
+    0.43% 45.66%,
+    1.68% 41.48%,
+    3.64% 37.58%,
+    6.12% 34.03%,
+    8.94% 30.85%,
+    11.89% 28%,
+    14.83% 25.37%,
+    17.64% 22.85%,
+    20.3% 20.3%,
+    22.85% 17.64%,
+    25.37% 14.83%,
+    28% 11.89%,
+    30.85% 8.94%,
+    34.03% 6.12%,
+    37.58% 3.64%,
+    41.48% 1.68%,
+    45.66% 0.43%
+  );
+  --shape-cookie6: polygon(
+    50% 5.5%,
+    53.91% 5.3%,
+    57.97% 4.82%,
+    62.23% 4.36%,
+    66.63% 4.31%,
+    70.98% 5.02%,
+    75% 6.7%,
+    78.47% 9.34%,
+    81.26% 12.75%,
+    83.41% 16.59%,
+    85.14% 20.51%,
+    86.75% 24.26%,
+    88.54% 27.75%,
+    90.66% 31.04%,
+    93.11% 34.31%,
+    95.64% 37.77%,
+    97.89% 41.56%,
+    99.44% 45.67%,
+    100% 50%,
+    99.44% 54.33%,
+    97.89% 58.44%,
+    95.64% 62.23%,
+    93.11% 65.69%,
+    90.66% 68.96%,
+    88.54% 72.25%,
+    86.75% 75.74%,
+    85.14% 79.49%,
+    83.41% 83.41%,
+    81.26% 87.25%,
+    78.47% 90.66%,
+    75% 93.3%,
+    70.98% 94.98%,
+    66.63% 95.69%,
+    62.23% 95.64%,
+    57.97% 95.18%,
+    53.91% 94.7%,
+    50% 94.5%,
+    46.09% 94.7%,
+    42.03% 95.18%,
+    37.77% 95.64%,
+    33.37% 95.69%,
+    29.02% 94.98%,
+    25% 93.3%,
+    21.53% 90.66%,
+    18.74% 87.25%,
+    16.59% 83.41%,
+    14.86% 79.49%,
+    13.25% 75.74%,
+    11.46% 72.25%,
+    9.34% 68.96%,
+    6.89% 65.69%,
+    4.36% 62.23%,
+    2.11% 58.44%,
+    0.56% 54.33%,
+    0% 50%,
+    0.56% 45.67%,
+    2.11% 41.56%,
+    4.36% 37.77%,
+    6.89% 34.31%,
+    9.34% 31.04%,
+    11.46% 27.75%,
+    13.25% 24.26%,
+    14.86% 20.51%,
+    16.59% 16.59%,
+    18.74% 12.75%,
+    21.53% 9.34%,
+    25% 6.7%,
+    29.02% 5.02%,
+    33.37% 4.31%,
+    37.77% 4.36%,
+    42.03% 4.82%,
+    46.09% 5.3%
+  );
+  --shape-cookie9: polygon(
+    50% 2.25%,
+    54.3% 0.85%,
+    58.68% 0.76%,
+    62.77% 2.34%,
+    66.33% 5.13%,
+    69.51% 8.17%,
+    72.75% 10.6%,
+    76.48% 12.19%,
+    80.69% 13.42%,
+    84.89% 15.11%,
+    88.3% 17.86%,
+    90.42% 21.7%,
+    91.35% 26.13%,
+    91.83% 30.49%,
+    92.76% 34.44%,
+    94.59% 38.05%,
+    97.02% 41.71%,
+    99.15% 45.7%,
+    100% 50%,
+    99.15% 54.3%,
+    97.02% 58.29%,
+    94.59% 61.95%,
+    92.76% 65.56%,
+    91.83% 69.51%,
+    91.35% 73.88%,
+    90.42% 78.3%,
+    88.3% 82.14%,
+    84.89% 84.89%,
+    80.69% 86.58%,
+    76.48% 87.81%,
+    72.75% 89.4%,
+    69.51% 91.83%,
+    66.33% 94.87%,
+    62.77% 97.66%,
+    58.68% 99.24%,
+    54.3% 99.15%,
+    50% 97.75%,
+    45.98% 95.98%,
+    42.1% 94.81%,
+    38.05% 94.59%,
+    33.67% 94.87%,
+    29.15% 94.72%,
+    25% 93.3%,
+    21.7% 90.42%,
+    19.31% 86.58%,
+    17.36% 82.64%,
+    15.14% 79.25%,
+    12.19% 76.48%,
+    8.65% 73.88%,
+    5.28% 70.85%,
+    3.02% 67.1%,
+    2.34% 62.77%,
+    2.98% 58.29%,
+    4.02% 54.02%,
+    4.5% 50%,
+    4.02% 45.98%,
+    2.98% 41.71%,
+    2.34% 37.23%,
+    3.02% 32.9%,
+    5.28% 29.15%,
+    8.65% 26.12%,
+    12.19% 23.52%,
+    15.14% 20.75%,
+    17.36% 17.36%,
+    19.31% 13.42%,
+    21.7% 9.58%,
+    25% 6.7%,
+    29.15% 5.28%,
+    33.67% 5.13%,
+    38.05% 5.41%,
+    42.1% 5.19%,
+    45.98% 4.02%
+  );
+  --shape-cookie12: polygon(
+    50% 0%,
+    54.28% 1.06%,
+    58.23% 3.34%,
+    62.04% 5.08%,
+    66.2% 5.48%,
+    70.76% 5.48%,
+    75% 6.7%,
+    78.18% 9.76%,
+    80.45% 13.71%,
+    82.88% 17.12%,
+    86.29% 19.55%,
+    90.24% 21.82%,
+    93.3% 25%,
+    94.52% 29.24%,
+    94.52% 33.8%,
+    94.92% 37.96%,
+    96.66% 41.77%,
+    98.94% 45.72%,
+    100% 50%,
+    98.94% 54.28%,
+    96.66% 58.23%,
+    94.92% 62.04%,
+    94.52% 66.2%,
+    94.52% 70.76%,
+    93.3% 75%,
+    90.24% 78.18%,
+    86.29% 80.45%,
+    82.88% 82.88%,
+    80.45% 86.29%,
+    78.18% 90.24%,
+    75% 93.3%,
+    70.76% 94.52%,
+    66.2% 94.52%,
+    62.04% 94.92%,
+    58.23% 96.66%,
+    54.28% 98.94%,
+    50% 100%,
+    45.72% 98.94%,
+    41.77% 96.66%,
+    37.96% 94.92%,
+    33.8% 94.52%,
+    29.24% 94.52%,
+    25% 93.3%,
+    21.82% 90.24%,
+    19.55% 86.29%,
+    17.12% 82.88%,
+    13.71% 80.45%,
+    9.76% 78.18%,
+    6.7% 75%,
+    5.48% 70.76%,
+    5.48% 66.2%,
+    5.08% 62.04%,
+    3.34% 58.23%,
+    1.06% 54.28%,
+    0% 50%,
+    1.06% 45.72%,
+    3.34% 41.77%,
+    5.08% 37.96%,
+    5.48% 33.8%,
+    5.48% 29.24%,
+    6.7% 25%,
+    9.76% 21.82%,
+    13.71% 19.55%,
+    17.12% 17.12%,
+    19.55% 13.71%,
+    21.82% 9.76%,
+    25% 6.7%,
+    29.24% 5.48%,
+    33.8% 5.48%,
+    37.96% 5.08%,
+    41.77% 3.34%,
+    45.72% 1.06%
+  );
+  --shape-clover: polygon(
+    50% 0%,
+    54.35% 0.33%,
+    58.59% 1.3%,
+    62.62% 2.9%,
+    66.34% 5.1%,
+    69.65% 7.85%,
+    72.45% 11.12%,
+    74.59% 14.87%,
+    75.87% 19.17%,
+    74.75% 25.25%,
+    80.83% 24.13%,
+    85.13% 25.41%,
+    88.88% 27.55%,
+    92.15% 30.35%,
+    94.9% 33.66%,
+    97.1% 37.38%,
+    98.7% 41.41%,
+    99.67% 45.65%,
+    100% 50%,
+    99.67% 54.35%,
+    98.7% 58.59%,
+    97.1% 62.62%,
+    94.9% 66.34%,
+    92.15% 69.65%,
+    88.88% 72.45%,
+    85.13% 74.59%,
+    80.83% 75.87%,
+    74.75% 74.75%,
+    75.87% 80.83%,
+    74.59% 85.13%,
+    72.45% 88.88%,
+    69.65% 92.15%,
+    66.34% 94.9%,
+    62.62% 97.1%,
+    58.59% 98.7%,
+    54.35% 99.67%,
+    50% 100%,
+    45.65% 99.67%,
+    41.41% 98.7%,
+    37.38% 97.1%,
+    33.66% 94.9%,
+    30.35% 92.15%,
+    27.55% 88.88%,
+    25.41% 85.13%,
+    24.13% 80.83%,
+    25.25% 74.75%,
+    19.17% 75.87%,
+    14.87% 74.59%,
+    11.12% 72.45%,
+    7.85% 69.65%,
+    5.1% 66.34%,
+    2.9% 62.62%,
+    1.3% 58.59%,
+    0.33% 54.35%,
+    0% 50%,
+    0.33% 45.65%,
+    1.3% 41.41%,
+    2.9% 37.38%,
+    5.1% 33.66%,
+    7.85% 30.35%,
+    11.12% 27.55%,
+    14.87% 25.41%,
+    19.17% 24.13%,
+    25.25% 25.25%,
+    24.13% 19.17%,
+    25.41% 14.87%,
+    27.55% 11.12%,
+    30.35% 7.85%,
+    33.66% 5.1%,
+    37.38% 2.9%,
+    41.41% 1.3%,
+    45.65% 0.33%
+  );
+  --shape-sunny: polygon(
+    50% 0%,
+    54.32% 0.6%,
+    58.43% 2.18%,
+    62.26% 4.24%,
+    65.94% 6.21%,
+    69.7% 7.76%,
+    73.69% 8.97%,
+    77.85% 10.23%,
+    81.88% 12.01%,
+    85.36% 14.64%,
+    87.99% 18.12%,
+    89.77% 22.15%,
+    91.03% 26.31%,
+    92.24% 30.3%,
+    93.79% 34.06%,
+    95.76% 37.74%,
+    97.82% 41.57%,
+    99.4% 45.68%,
+    100% 50%,
+    99.4% 54.32%,
+    97.82% 58.43%,
+    95.76% 62.26%,
+    93.79% 65.94%,
+    92.24% 69.7%,
+    91.03% 73.69%,
+    89.77% 77.85%,
+    87.99% 81.88%,
+    85.36% 85.36%,
+    81.88% 87.99%,
+    77.85% 89.77%,
+    73.69% 91.03%,
+    69.7% 92.24%,
+    65.94% 93.79%,
+    62.26% 95.76%,
+    58.43% 97.82%,
+    54.32% 99.4%,
+    50% 100%,
+    45.68% 99.4%,
+    41.57% 97.82%,
+    37.74% 95.76%,
+    34.06% 93.79%,
+    30.3% 92.24%,
+    26.31% 91.03%,
+    22.15% 89.77%,
+    18.12% 87.99%,
+    14.64% 85.36%,
+    12.01% 81.88%,
+    10.23% 77.85%,
+    8.97% 73.69%,
+    7.76% 69.7%,
+    6.21% 65.94%,
+    4.24% 62.26%,
+    2.18% 58.43%,
+    0.6% 54.32%,
+    0% 50%,
+    0.6% 45.68%,
+    2.18% 41.57%,
+    4.24% 37.74%,
+    6.21% 34.06%,
+    7.76% 30.3%,
+    8.97% 26.31%,
+    10.23% 22.15%,
+    12.01% 18.12%,
+    14.64% 14.64%,
+    18.12% 12.01%,
+    22.15% 10.23%,
+    26.31% 8.97%,
+    30.3% 7.76%,
+    34.06% 6.21%,
+    37.74% 4.24%,
+    41.57% 2.18%,
+    45.68% 0.6%
+  );
+  --shape-gem: polygon(
+    50% 0%,
+    54.31% 0.75%,
+    58.31% 2.87%,
+    61.79% 6%,
+    64.69% 9.63%,
+    67.14% 13.24%,
+    69.4% 16.39%,
+    71.81% 18.85%,
+    74.66% 20.61%,
+    78.11% 21.89%,
+    82.13% 23.04%,
+    86.47% 24.46%,
+    90.7% 26.5%,
+    94.33% 29.33%,
+    96.9% 32.93%,
+    98.1% 37.11%,
+    97.86% 41.56%,
+    96.36% 45.94%,
+    94% 50%,
+    91.31% 53.61%,
+    88.81% 56.84%,
+    86.9% 59.89%,
+    85.79% 63.03%,
+    85.42% 66.52%,
+    85.51% 70.5%,
+    85.61% 74.94%,
+    85.28% 79.6%,
+    84.11% 84.11%,
+    81.91% 88.03%,
+    78.67% 90.94%,
+    74.6% 92.61%,
+    70.05% 93%,
+    65.41% 92.33%,
+    60.99% 91%,
+    56.97% 89.53%,
+    53.36% 88.42%,
+    50% 88%,
+    46.64% 88.42%,
+    43.03% 89.53%,
+    39.01% 91%,
+    34.59% 92.33%,
+    29.95% 93%,
+    25.4% 92.61%,
+    21.33% 90.94%,
+    18.09% 88.03%,
+    15.89% 84.11%,
+    14.72% 79.6%,
+    14.39% 74.94%,
+    14.49% 70.5%,
+    14.58% 66.52%,
+    14.21% 63.03%,
+    13.1% 59.89%,
+    11.19% 56.84%,
+    8.69% 53.61%,
+    6% 50%,
+    3.64% 45.94%,
+    2.14% 41.56%,
+    1.9% 37.11%,
+    3.1% 32.93%,
+    5.67% 29.33%,
+    9.3% 26.5%,
+    13.53% 24.46%,
+    17.87% 23.04%,
+    21.89% 21.89%,
+    25.34% 20.61%,
+    28.19% 18.85%,
+    30.6% 16.39%,
+    32.86% 13.24%,
+    35.31% 9.63%,
+    38.21% 6%,
+    41.69% 2.87%,
+    45.69% 0.75%
+  );
+}
+
+html {
+  overflow-x: clip;
+  scrollbar-color: var(--color-primary-container) var(--color-surface-lowest);
+}
+
+body {
+  min-width: 320px;
+  overflow-x: clip;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The product page's backdrop: one soft glow in each accent colour… */
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(
+      52rem 38rem at 85% -6%,
+      color-mix(in srgb, var(--color-primary-container) 20%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40rem 34rem at 6% 62%,
+      color-mix(in srgb, var(--color-tertiary) 7%, transparent),
+      transparent 72%
+    );
+}
+
+/* …and film grain, so large dark areas do not band. */
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  content: "";
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+.site-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  pointer-events: none;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at 50% 15%, #000 10%, transparent 72%);
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* ─── Type roles ─────────────────────────────────────────────────────────── */
+
+/* Display: condensed, heavy, tight — the product page's voice. */
+.display {
+  font-stretch: 42%;
+  font-weight: 760;
+  letter-spacing: -0.005em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+/* The hollow "Echo" of the LunaEcho wordmark. */
+.outline-text {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-tertiary);
+}
+
+/* Label: small uppercase eyebrows, statuses, and kickers. */
+.label {
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+/* ─── Shapes and motion ──────────────────────────────────────────────────── */
+
+.shape-cookie4 {
+  clip-path: var(--shape-cookie4);
+}
+
+.shape-cookie6 {
+  clip-path: var(--shape-cookie6);
+}
+
+.shape-cookie9 {
+  clip-path: var(--shape-cookie9);
+}
+
+.shape-cookie12 {
+  clip-path: var(--shape-cookie12);
+}
+
+.shape-clover {
+  clip-path: var(--shape-clover);
+}
+
+.shape-sunny {
+  clip-path: var(--shape-sunny);
+}
+
+.shape-gem {
+  clip-path: var(--shape-gem);
+}
+
+/* A slow ambient morph through the shape library, for hero art. */
+@keyframes shape-morph {
+  0% {
+    clip-path: var(--shape-cookie12);
+  }
+  20% {
+    clip-path: var(--shape-clover);
+  }
+  40% {
+    clip-path: var(--shape-sunny);
+  }
+  60% {
+    clip-path: var(--shape-cookie6);
+  }
+  80% {
+    clip-path: var(--shape-gem);
+  }
+  100% {
+    clip-path: var(--shape-cookie12);
+  }
+}
+
+.shape-morph {
+  animation: shape-morph 24s var(--effects) infinite;
+}
+
+/* Expressive containers round further on hover, with a spring. */
+.m3-card {
+  border-radius: var(--radius-m3-xl);
+  transition:
+    border-radius var(--spring-default-duration) var(--spring-default),
+    background-color var(--effects-duration) var(--effects);
+}
+
+.m3-card-interactive:hover {
+  border-radius: var(--radius-m3-xxl);
+  background-color: var(--color-surface-high);
+}
+
+/* M3 Expressive buttons: round at rest, squarer and slightly smaller while pressed. */
+.m3-button {
+  border-radius: 999px;
+  transition:
+    border-radius var(--spring-fast-duration) var(--spring-fast),
+    transform var(--spring-fast-duration) var(--spring-fast),
+    background-color var(--effects-duration) var(--effects),
+    color var(--effects-duration) var(--effects);
+}
+
+.m3-button:active {
+  border-radius: var(--radius-m3-md);
+  transform: scale(0.97);
+}
+
+/* The selected item of a button group keeps the squarer shape. */
+.m3-button[aria-current="page"] {
+  border-radius: var(--radius-m3-md);
+}
+
+/* M3 switch. The thumb grows and slides with a spring when the state changes. */
+.m3-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-outline-strong);
+  border-radius: 999px;
+  background: var(--color-surface-highest);
+  transition:
+    background-color var(--effects-duration) var(--effects),
+    border-color var(--effects-duration) var(--effects);
+}
+
+.m3-switch::after {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  content: "";
+  background: var(--color-outline-strong);
+  transition:
+    all var(--spring-fast-duration) var(--spring-fast),
+    background-color var(--effects-duration) var(--effects);
+}
+
+.m3-switch[data-on="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.m3-switch[data-on="true"]::after {
+  top: 2px;
+  left: 22px;
+  width: 24px;
+  height: 24px;
+  background: var(--color-on-primary);
+}
+
+button:hover > .m3-switch::after,
+button:focus-visible > .m3-switch::after {
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+/* Reveal on load, staggered with --delay. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.rise {
+  animation: rise var(--spring-default-duration) var(--spring-default) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+select[multiple] option:checked {
+  background: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

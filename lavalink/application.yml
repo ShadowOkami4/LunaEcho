@@ -1,0 +1,57 @@
+# Lavalink audio node for LunaEcho music. See docs/music.md.
+# Sources are switched on and off here; the bot only chooses which search prefixes it tries.
+server:
+  port: 2333
+  address: 0.0.0.0
+
+# YouTube support lives in a plugin jar that `npm run lavalink:plugins` downloads into
+# lavalink/plugins; Lavalink loads every jar in that folder. Delete the jar and set
+# plugins.youtube.enabled to false for deployments that must not stream from YouTube.
+lavalink:
+  server:
+    password: "${LAVALINK_PASSWORD:youshallnotpass}"
+    sources:
+      # The built-in YouTube source is deprecated; the youtube-plugin jar replaces it.
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    # Lower quality settings trade a little audio fidelity for much less CPU per player.
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    trackStuckThresholdMs: 10000
+    playerUpdateInterval: 5
+    youtubePlaylistLoadLimit: 6
+    soundcloudSearchEnabled: true
+    youtubeSearchEnabled: true
+
+plugins:
+  youtube:
+    enabled: true
+    # Signature deciphering runs in the yt-cipher service from docker-compose.yml.
+    remoteCipher:
+      url: "http://yt-cipher:8001"
+      password: "${YT_CIPHER_TOKEN:lunaecho-local-cipher}"
+      userAgent: "LunaEcho"
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    # Tried in order. TVHTML5_SIMPLY plays without a login; ANDROID_VR, WEB, and WEBEMBEDDED
+    # failed with "requires login" or "no audio streams" when tested on 1 October 2026.
+    # MUSIC only searches YouTube Music.
+    clients: ["TVHTML5_SIMPLY", "MWEB", "ANDROID_VR", "WEB", "WEBEMBEDDED", "IOS", "MUSIC"]
+
+metrics:
+  prometheus:
+    enabled: true
+    endpoint: /metrics
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO

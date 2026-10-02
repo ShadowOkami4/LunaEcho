@@ -1,0 +1,59 @@
+{
+  "name": "lunaecho",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A modular, all-in-one, open-source Discord community platform.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/db",
+    "packages/modules",
+    "apps/bot",
+    "apps/dashboard"
+  ],
+  "scripts": {
+    "bench": "npm run bench -w @lunaecho/bot",
+    "build": "npm run build --workspaces",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "commands:deploy": "npm run commands:deploy -w @lunaecho/bot --",
+    "db:generate": "npm run generate -w @lunaecho/db",
+    "db:migrate": "npm run migrate -w @lunaecho/db",
+    "dashboard": "npm run dev -w @lunaecho/dashboard",
+    "dev": "npm run dev -w @lunaecho/bot",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lavalink:plugins": "node scripts/fetch-lavalink-plugins.mjs",
+    "lint": "eslint . --max-warnings=0",
+    "live:music": "npm run live:music -w @lunaecho/bot --",
+    "live:voice": "npm run live:voice -w @lunaecho/bot --",
+    "live:modules": "npm run live:modules -w @lunaecho/bot --",
+    "soak": "npm run soak -w @lunaecho/bot --",
+    "stress": "npm run stress -w @lunaecho/bot --",
+    "smoke:discord": "npm run smoke:discord -w @lunaecho/bot",
+    "start": "npm run start -w @lunaecho/bot",
+    "test": "npm run test --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.1.1",
+    "eslint": "10.7.0",
+    "prettier": "3.9.5",
+    "tsx": "4.23.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0",
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    }
+  },
+  "allowScripts": {
+    "esbuild": false
+  }
+}

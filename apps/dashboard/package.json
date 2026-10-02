@@ -1,0 +1,33 @@
+{
+  "name": "@lunaecho/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The LunaEcho web dashboard: Discord login, server selection, and module settings.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "next build --turbopack",
+    "dev": "next dev --webpack --port 3000",
+    "start": "next start --port 3000",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lunaecho/core": "0.1.0",
+    "@lunaecho/db": "0.1.0",
+    "@lunaecho/modules": "0.1.0",
+    "iron-session": "9.0.1",
+    "next": "16.3.8",
+    "pino": "10.3.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.3"
+  }
+}

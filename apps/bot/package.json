@@ -1,0 +1,35 @@
+{
+  "name": "@lunaecho/bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The LunaEcho Discord bot process.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "bench": "tsx --conditions=development --expose-gc bench/resource-usage.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "commands:deploy": "tsx --conditions=development src/scripts/deploy-commands.ts",
+    "dev": "tsx watch --conditions=development src/main.ts",
+    "soak": "tsx --conditions=development stress/run-stress.ts --duration 3600 --sample 30 --warmup 300",
+    "stress": "tsx --conditions=development stress/run-stress.ts",
+    "live:music": "tsx --conditions=development stress/live-music-probe.ts",
+    "live:voice": "tsx --conditions=development stress/live-voice-load.ts",
+    "live:modules": "tsx --conditions=development stress/live-modules-probe.ts",
+    "smoke:discord": "tsx --conditions=development src/scripts/discord-smoke-test.ts",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lunaecho/core": "0.1.0",
+    "@lunaecho/db": "0.1.0",
+    "@lunaecho/modules": "0.1.0",
+    "discord.js": "14.27.0",
+    "drizzle-orm": "0.45.3",
+    "shoukaku": "4.3.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "pino": "10.3.1"
+  }
+}
