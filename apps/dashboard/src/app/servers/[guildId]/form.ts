@@ -48,6 +48,12 @@ export class SettingsForm {
     return Number(this.text(field));
   }
 
+  /** An uploaded file, or undefined when the field was left empty. */
+  public file(field: string): File | undefined {
+    const value = this.formData.get(field);
+    return value instanceof File && value.size > 0 ? value : undefined;
+  }
+
   public checked(field: string): boolean {
     return this.formData.get(field) === "on" || this.formData.get(field) === "true";
   }

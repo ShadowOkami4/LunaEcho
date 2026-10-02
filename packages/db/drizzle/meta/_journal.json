@@ -78,6 +78,13 @@
       "when": 1790898237768,
       "tag": "0010_social_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790945162098,
+      "tag": "0011_welcome_cards",
+      "breakpoints": true
     }
   ]
 }

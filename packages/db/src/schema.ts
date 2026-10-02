@@ -246,3 +246,4 @@ export * from "./tables/roles.js";
 export * from "./tables/tickets.js";
 export * from "./tables/automation.js";
 export * from "./tables/social.js";
+export * from "./tables/welcome-cards.js";

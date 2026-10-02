@@ -9,7 +9,7 @@ import { channelTypes, fetchGuildChannels } from "@/lib/discord";
 import { services } from "@/lib/services";
 
 import { removeVoiceLobby, saveVoiceLobby } from "../actions";
-import { Button, Card, HiddenGuild, inputClass, Notice } from "../ui";
+import { Button, Card, HiddenGuild, inputClass, ListItem, Notice } from "../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -42,39 +42,44 @@ export default async function VoiceRoomsPage({
       <Notice code={(await searchParams).notice} />
 
       <Card
+        icon="headphones"
         title="Lobbies"
         description={`Joining a lobby opens a private room for that member. ${lobbies.length}/${maximumLobbiesPerGuild} lobbies · ${rooms.length} rooms open now.`}
       >
         {lobbies.length === 0 ? (
           <p className="text-sm text-muted">No lobbies yet. Pick a voice channel below.</p>
         ) : (
-          <ul className="divide-y divide-outline">
+          <ul className="divide-y divide-outline/60">
             {lobbies.map((lobby) => (
-              <li key={lobby.channelId} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="font-medium">
-                    🔊 {channelName.get(lobby.channelId) ?? lobby.channelId}
-                  </p>
-                  <p className="text-sm text-muted">
-                    Name “{lobby.nameTemplate}” · limit{" "}
+              <ListItem
+                key={lobby.channelId}
+                icon="headphones"
+                title={channelName.get(lobby.channelId) ?? lobby.channelId}
+                supporting={
+                  <>
+                    Room name “{lobby.nameTemplate}” · limit{" "}
                     {lobby.userLimit === 0 ? "none" : lobby.userLimit} · category{" "}
                     {lobby.categoryId === null
                       ? "same as lobby"
                       : (channelName.get(lobby.categoryId) ?? lobby.categoryId)}
-                  </p>
-                </div>
+                  </>
+                }
+              >
                 <form action={removeVoiceLobby}>
                   <HiddenGuild guildId={guildId} />
                   <input type="hidden" name="channelId" value={lobby.channelId} />
-                  <Button tone="danger">Remove</Button>
+                  <Button tone="remove" icon="delete">
+                    Remove
+                  </Button>
                 </form>
-              </li>
+              </ListItem>
             ))}
           </ul>
         )}
       </Card>
 
       <Card
+        icon="add"
         title="Add a lobby"
         description="Use {user} in the name to insert the owner's display name."
       >
@@ -123,7 +128,7 @@ export default async function VoiceRoomsPage({
             />
           </label>
           <div className="sm:col-span-2">
-            <Button>Save lobby</Button>
+            <Button icon="add">Add lobby</Button>
           </div>
         </form>
       </Card>

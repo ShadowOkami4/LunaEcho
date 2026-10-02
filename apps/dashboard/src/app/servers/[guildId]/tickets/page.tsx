@@ -42,7 +42,8 @@ export default async function TicketsPage({
     <div className="flex flex-col gap-4">
       <Notice code={(await searchParams).notice} />
       <Card
-        title="Tickets"
+        icon="tune"
+        title="Ticket setup"
         description={`Members open a private thread with your team by pressing a button. ${open} tickets are open right now.`}
       >
         <form action={saveTicketSettings} className="grid gap-3 sm:grid-cols-2">
@@ -114,12 +115,15 @@ export default async function TicketsPage({
       </Card>
 
       <Card
+        icon="send"
         title="Post the ticket panel"
         description="LunaEcho needs Create Private Threads, Send Messages in Threads, and Manage Threads in the ticket channel. Posting again replaces the old panel."
       >
         <form action={postTicketPanel}>
           <HiddenGuild guildId={guildId} />
-          <Button tone="neutral">Post panel</Button>
+          <Button tone="neutral" icon="send">
+            Post panel
+          </Button>
         </form>
       </Card>
     </div>

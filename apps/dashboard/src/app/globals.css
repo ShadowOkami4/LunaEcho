@@ -621,7 +621,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* The product page's backdrop: one soft glow in each accent colour… */
+/* The product page's backdrop, toned down for a work surface: one soft glow per accent. */
 body::before {
   position: fixed;
   inset: 0;
@@ -631,39 +631,14 @@ body::before {
   background:
     radial-gradient(
       52rem 38rem at 85% -6%,
-      color-mix(in srgb, var(--color-primary-container) 20%, transparent),
+      color-mix(in srgb, var(--color-primary-container) 9%, transparent),
       transparent 70%
     ),
     radial-gradient(
       40rem 34rem at 6% 62%,
-      color-mix(in srgb, var(--color-tertiary) 7%, transparent),
+      color-mix(in srgb, var(--color-tertiary) 4%, transparent),
       transparent 72%
     );
-}
-
-/* …and film grain, so large dark areas do not band. */
-body::after {
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  content: "";
-  pointer-events: none;
-  opacity: 0.16;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
-}
-
-.site-grid {
-  position: fixed;
-  inset: 0;
-  z-index: -4;
-  pointer-events: none;
-  opacity: 0.28;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: radial-gradient(circle at 50% 15%, #000 10%, transparent 72%);
 }
 
 ::selection {
@@ -678,7 +653,34 @@ body::after {
 
 /* ─── Type roles ─────────────────────────────────────────────────────────── */
 
-/* Display: condensed, heavy, tight — the product page's voice. */
+/* M3 type scale (Roboto Flex). Emphasized roles are heavier, as M3 Expressive suggests. */
+.headline-large {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 2.5rem;
+}
+
+.headline-small {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+.title-large {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+.title-medium {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.5rem;
+}
+
+/* Display: condensed and heavy — the LunaEcho wordmark only. */
 .display {
   font-stretch: 42%;
   font-weight: 760;
@@ -693,13 +695,12 @@ body::after {
   -webkit-text-stroke: 1.5px var(--color-tertiary);
 }
 
-/* Label: small uppercase eyebrows, statuses, and kickers. */
+/* Label: small section headings and statuses. */
 .label {
-  font-size: 0.74rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  line-height: 1.35;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1rem;
 }
 
 /* ─── Shapes and motion ──────────────────────────────────────────────────── */
@@ -758,22 +759,70 @@ body::after {
   animation: shape-morph 24s var(--effects) infinite;
 }
 
-/* Expressive containers round further on hover, with a spring. */
+/*
+ * Shape morphing. Every shape has the same 72 points, so clip-path animates between them. Icon
+ * containers and avatars morph when the element they belong to is hovered or focused.
+ */
+.shape-cookie4,
+.shape-cookie6,
+.shape-cookie9,
+.shape-cookie12,
+.shape-clover,
+.shape-sunny,
+.shape-gem {
+  transition:
+    clip-path var(--spring-default-duration) var(--spring-default),
+    rotate var(--spring-default-duration) var(--spring-default),
+    background-color var(--effects-duration) var(--effects),
+    color var(--effects-duration) var(--effects);
+}
+
+:is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
+  .shape-cookie9 {
+  clip-path: var(--shape-sunny);
+}
+
+:is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
+  .shape-cookie12 {
+  clip-path: var(--shape-clover);
+}
+
+/* Icons (not pictures) also turn a little, which reads as playful but stays calm. */
+:is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
+  span.shape-cookie9 {
+  rotate: 18deg;
+}
+
+:is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
+  span.shape-cookie9
+  > svg {
+  rotate: -18deg;
+  transition: rotate var(--spring-default-duration) var(--spring-default);
+}
+
+/* Expressive containers round further and lift on hover, with a spring. */
 .m3-card {
   border-radius: var(--radius-m3-xl);
   transition:
     border-radius var(--spring-default-duration) var(--spring-default),
+    translate var(--spring-default-duration) var(--spring-default),
+    box-shadow var(--effects-duration) var(--effects),
     background-color var(--effects-duration) var(--effects);
 }
 
 .m3-card-interactive:hover {
   border-radius: var(--radius-m3-xxl);
   background-color: var(--color-surface-high);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.32);
+  translate: 0 -3px;
 }
 
 /* M3 Expressive buttons: round at rest, squarer and slightly smaller while pressed. */
 .m3-button {
   border-radius: 999px;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
   transition:
     border-radius var(--spring-fast-duration) var(--spring-fast),
     transform var(--spring-fast-duration) var(--spring-fast),
@@ -781,18 +830,46 @@ body::after {
     color var(--effects-duration) var(--effects);
 }
 
+/* M3 state layer: the content colour at 8 % on hover and 12 % while pressed. */
+.m3-button::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--effects-duration) var(--effects);
+}
+
+.m3-button:hover::after {
+  opacity: 0.08;
+}
+
+.m3-button:active::after {
+  opacity: 0.12;
+}
+
+.m3-button:disabled::after {
+  opacity: 0;
+}
+
 .m3-button:active {
   border-radius: var(--radius-m3-md);
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 /* The selected item of a button group keeps the squarer shape. */
-.m3-button[aria-current="page"] {
+.m3-button[aria-current="page"],
+.m3-button[aria-pressed="true"] {
   border-radius: var(--radius-m3-md);
 }
 
 /* M3 switch. The thumb grows and slides with a spring when the state changes. */
 .m3-switch {
+  appearance: none;
+  cursor: pointer;
+  margin: 0;
   position: relative;
   display: inline-block;
   width: 52px;
@@ -820,11 +897,13 @@ body::after {
     background-color var(--effects-duration) var(--effects);
 }
 
+.m3-switch:checked,
 .m3-switch[data-on="true"] {
   border-color: var(--color-primary);
   background: var(--color-primary);
 }
 
+.m3-switch:checked::after,
 .m3-switch[data-on="true"]::after {
   top: 2px;
   left: 22px;
@@ -834,7 +913,9 @@ body::after {
 }
 
 button:hover > .m3-switch::after,
-button:focus-visible > .m3-switch::after {
+button:focus-visible > .m3-switch::after,
+input.m3-switch:hover::after,
+input.m3-switch:focus-visible::after {
   box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
@@ -846,14 +927,226 @@ button:focus-visible > .m3-switch::after {
   }
 }
 
+/* "backwards" (not "both"): once finished, the animation leaves no transform behind. A kept
+   transform would make every card its own stacking context and hide open menus under the next. */
 .rise {
-  animation: rise var(--spring-default-duration) var(--spring-default) both;
+  animation: rise var(--spring-default-duration) var(--spring-default) backwards;
   animation-delay: var(--delay, 0ms);
+}
+
+input[type="checkbox"]:not(.m3-switch) {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
 }
 
 select[multiple] option:checked {
   background: var(--color-secondary-container);
   color: var(--color-on-secondary-container);
+}
+
+/* Collapsible sections: no browser marker; the chevron turns when open. */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details .m3-chevron {
+  transition: transform var(--spring-fast-duration) var(--spring-fast);
+}
+
+details[open] > summary .m3-chevron {
+  transform: rotate(180deg);
+}
+
+/* Native single selects that remain (short fixed lists) get the same look as the menus. */
+select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%20-960%20960%20960%22%20fill%3D%22%23d8c0cb%22%3E%3Cpath%20d%3D%22M480-362q-8%200-15-2.5t-13-8.5L268-557q-11-11-11-28t11-28q11-11%2028-11t28%2011l156%20156%20156-156q11-11%2028-11t28%2011q11%2011%2011%2028t-11%2028L508-373q-6%206-13%208.5t-15%202.5Z%22/%3E%3C/svg%3E");
+  background-position: right 0.6rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  cursor: pointer;
+  padding-right: 2.4rem;
+}
+
+select option {
+  background: var(--color-surface-high);
+  color: var(--color-on-surface);
+}
+
+/* The search field sits inside the open menu, which already shows where focus is. */
+.menu-search:focus-visible {
+  outline: none;
+}
+
+/* ─── Motion ─────────────────────────────────────────────────────────────── */
+
+/* Switch: the thumb grows while pressed, as in M3. */
+button:active > .m3-switch::after,
+input.m3-switch:active::after {
+  top: 2px;
+  width: 26px;
+  height: 26px;
+}
+
+button:active > .m3-switch:not([data-on="true"])::after,
+input.m3-switch:not(:checked):active::after {
+  left: 2px;
+}
+
+/* Navigation drawer: the active indicator grows out from the middle with a spring. */
+.nav-item {
+  position: relative;
+  isolation: isolate;
+}
+
+.nav-item::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  content: "";
+  background: var(--color-secondary-container);
+  scale: 0.4 1;
+  opacity: 0;
+  transition:
+    scale var(--spring-default-duration) var(--spring-default),
+    opacity var(--effects-duration) var(--effects);
+}
+
+.nav-item[aria-current="page"]::before {
+  scale: 1 1;
+  opacity: 1;
+}
+
+/* Lists and grids reveal their items one after another. */
+.stagger > * {
+  animation: rise var(--spring-default-duration) var(--spring-default) backwards;
+}
+
+.stagger > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > :nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > :nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > :nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > :nth-child(8) {
+  animation-delay: 280ms;
+}
+.stagger > :nth-child(n + 9) {
+  animation-delay: 320ms;
+}
+
+/* A new page slides in softly when you navigate. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+.page-enter {
+  animation: page-enter 420ms var(--spring-default) backwards;
+}
+
+/* Menus open from their anchor with a spring. */
+@keyframes menu-open {
+  from {
+    opacity: 0;
+    scale: 1 0.85;
+  }
+}
+
+.menu-open {
+  animation: menu-open 320ms var(--spring-fast) backwards;
+  transform-origin: top center;
+}
+
+/* Collapsible sections open and close smoothly where the browser supports it. */
+:root {
+  interpolate-size: allow-keywords;
+}
+
+details::details-content {
+  height: 0;
+  overflow: clip;
+  transition:
+    height var(--spring-default-duration) var(--spring-default),
+    content-visibility var(--spring-default-duration) allow-discrete;
+}
+
+details[open]::details-content {
+  height: auto;
+}
+
+/*
+ * M3 Expressive loading indicator: a shape that morphs and turns. Used for pending saves, the
+ * card preview, and page loads.
+ */
+@keyframes loader-morph {
+  0% {
+    clip-path: var(--shape-cookie9);
+    rotate: 0deg;
+  }
+  25% {
+    clip-path: var(--shape-clover);
+  }
+  50% {
+    clip-path: var(--shape-sunny);
+    rotate: 180deg;
+  }
+  75% {
+    clip-path: var(--shape-gem);
+  }
+  100% {
+    clip-path: var(--shape-cookie9);
+    rotate: 360deg;
+  }
+}
+
+.m3-loader {
+  display: inline-block;
+  flex-shrink: 0;
+  background: currentColor;
+  animation: loader-morph 1.6s var(--spring-default) infinite;
+}
+
+/* Skeletons shimmer while a page loads. */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in srgb, var(--color-on-surface) 6%, transparent) 50%,
+      transparent 70%
+    )
+    var(--color-surface-low);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,8 +1,7 @@
 import "server-only";
 
-import { ExpiringCache } from "@lunaecho/core";
-
 import { env } from "./env";
+import { promiseCache, shared } from "./shared-request";
 import { permissions } from "./permissions";
 
 export { permissions };
@@ -36,6 +35,8 @@ export type DiscordChannel = Readonly<{
 }>;
 
 export type DiscordRole = Readonly<{
+  /** The role colour as an RGB integer; 0 means the role has no colour. */
+  color: number;
   id: string;
   managed: boolean;
   name: string;
@@ -129,95 +130,58 @@ export function fetchCurrentUser(accessToken: string): Promise<DiscordUser> {
   return request("/users/@me", `Bearer ${accessToken}`);
 }
 
-const userGuildCache = new ExpiringCache<string, readonly DiscordPartialGuild[]>({
-  clock: () => new Date(),
-  maximumEntries: 5_000,
-  ttlMilliseconds: 60_000,
-});
+const userGuildCache = promiseCache<readonly DiscordPartialGuild[]>(60_000, 5_000);
 
 /** The user's servers with their effective permissions; cached briefly per access token. */
-export async function fetchUserGuilds(
-  accessToken: string,
-): Promise<readonly DiscordPartialGuild[]> {
-  const cached = userGuildCache.get(accessToken);
-
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  const guilds = await request<DiscordPartialGuild[]>("/users/@me/guilds", `Bearer ${accessToken}`);
-  userGuildCache.set(accessToken, guilds);
-  return guilds;
+export function fetchUserGuilds(accessToken: string): Promise<readonly DiscordPartialGuild[]> {
+  return shared(userGuildCache, accessToken, () =>
+    request<DiscordPartialGuild[]>("/users/@me/guilds", `Bearer ${accessToken}`),
+  );
 }
 
-let botGuildIds: Readonly<{ expiresAt: number; ids: ReadonlySet<string> }> | undefined;
+const botGuildCache = promiseCache<ReadonlySet<string>>(60_000, 1);
 
 /** Every server the bot is in, paged 200 at a time and cached for a minute. */
-export async function fetchBotGuildIds(): Promise<ReadonlySet<string>> {
-  if (botGuildIds !== undefined && botGuildIds.expiresAt > Date.now()) {
-    return botGuildIds.ids;
-  }
+export function fetchBotGuildIds(): Promise<ReadonlySet<string>> {
+  return shared(botGuildCache, "bot", async () => {
+    const ids = new Set<string>();
+    let after = "0";
 
-  const ids = new Set<string>();
-  let after = "0";
+    for (;;) {
+      const page = await request<DiscordPartialGuild[]>(
+        `/users/@me/guilds?limit=200&after=${after}`,
+        bot(),
+      );
+      page.forEach((guild) => ids.add(guild.id));
+      const last = page.at(-1);
 
-  for (;;) {
-    const page = await request<DiscordPartialGuild[]>(
-      `/users/@me/guilds?limit=200&after=${after}`,
-      bot(),
-    );
-    page.forEach((guild) => ids.add(guild.id));
-    const last = page.at(-1);
+      if (page.length < 200 || last === undefined) {
+        return ids;
+      }
 
-    if (page.length < 200 || last === undefined) {
-      break;
+      after = last.id;
     }
-
-    after = last.id;
-  }
-
-  botGuildIds = { expiresAt: Date.now() + 60_000, ids };
-  return ids;
+  });
 }
 
-const guildChannelCache = new ExpiringCache<string, readonly DiscordChannel[]>({
-  clock: () => new Date(),
-  maximumEntries: 1_000,
-  ttlMilliseconds: 30_000,
-});
+const guildChannelCache = promiseCache<readonly DiscordChannel[]>(30_000, 1_000);
 
-export async function fetchGuildChannels(guildId: string): Promise<readonly DiscordChannel[]> {
-  const cached = guildChannelCache.get(guildId);
-
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  const channels = (await request<DiscordChannel[]>(`/guilds/${guildId}/channels`, bot())).sort(
-    (left, right) => left.position - right.position,
+export function fetchGuildChannels(guildId: string): Promise<readonly DiscordChannel[]> {
+  return shared(guildChannelCache, guildId, async () =>
+    (await request<DiscordChannel[]>(`/guilds/${guildId}/channels`, bot())).sort(
+      (left, right) => left.position - right.position,
+    ),
   );
-  guildChannelCache.set(guildId, channels);
-  return channels;
 }
 
-const guildRoleCache = new ExpiringCache<string, readonly DiscordRole[]>({
-  clock: () => new Date(),
-  maximumEntries: 1_000,
-  ttlMilliseconds: 30_000,
-});
+const guildRoleCache = promiseCache<readonly DiscordRole[]>(30_000, 1_000);
 
-export async function fetchGuildRoles(guildId: string): Promise<readonly DiscordRole[]> {
-  const cached = guildRoleCache.get(guildId);
-
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  const roles = (await request<DiscordRole[]>(`/guilds/${guildId}/roles`, bot()))
-    .filter((role) => role.id !== guildId && !role.managed)
-    .sort((left, right) => right.position - left.position);
-  guildRoleCache.set(guildId, roles);
-  return roles;
+export function fetchGuildRoles(guildId: string): Promise<readonly DiscordRole[]> {
+  return shared(guildRoleCache, guildId, async () =>
+    (await request<DiscordRole[]>(`/guilds/${guildId}/roles`, bot()))
+      .filter((role) => role.id !== guildId && !role.managed)
+      .sort((left, right) => right.position - left.position),
+  );
 }
 
 const botPermissions = [
@@ -262,8 +226,9 @@ export function guildIconUrl(guild: Readonly<{ icon: string | null; id: string }
 
 export function userAvatarUrl(
   user: Readonly<{ avatar: string | null; id: string }>,
+  size: 64 | 256 = 64,
 ): string | null {
   return user.avatar === null
     ? null
-    : `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+    : `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=${size}`;
 }

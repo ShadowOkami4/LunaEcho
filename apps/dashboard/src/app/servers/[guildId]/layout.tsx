@@ -2,24 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Icon } from "@/components/icon";
 import { requireManageableGuild } from "@/lib/access";
 import { guildIconUrl } from "@/lib/discord";
+import { services } from "@/lib/services";
 
-import { Tabs, type Tab } from "./tabs";
-
-const tabs: readonly Tab[] = [
-  { href: "", label: "Modules" },
-  { href: "/moderation", label: "Moderation" },
-  { href: "/logs", label: "Logs" },
-  { href: "/welcome", label: "Welcome" },
-  { href: "/roles", label: "Roles" },
-  { href: "/tickets", label: "Tickets" },
-  { href: "/levels", label: "Levels" },
-  { href: "/voice-rooms", label: "Voice Rooms" },
-  { href: "/music", label: "Music" },
-  { href: "/automation", label: "Automation" },
-  { href: "/social", label: "Social" },
-];
+import { setModuleEnabled } from "./actions";
+import { ModuleFrame, Navigation, type ModuleSwitchState } from "./tabs";
 
 export default async function GuildLayout({
   children,
@@ -28,41 +17,53 @@ export default async function GuildLayout({
   const { guildId } = await params;
   const { guild } = await requireManageableGuild(guildId);
   const icon = guildIconUrl(guild);
+  const app = await services();
+  const [moduleStates, entitlement] = await Promise.all([
+    app.moduleSettings.getStates(guildId),
+    app.entitlements.resolveForGuild(guildId),
+  ]);
+  const states: ModuleSwitchState[] = moduleStates.map(({ enabled, module }) => ({
+    available: module.status === "available" && entitlement.capabilities.has(module.id),
+    enabled,
+    moduleId: module.id,
+  }));
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="rise flex flex-col gap-6">
-        <Link
-          href="/servers"
-          className="m3-button label inline-flex h-9 w-fit items-center gap-2 bg-surface-low px-4 text-muted hover:bg-surface-high hover:text-on-surface"
-        >
-          ← All servers
-        </Link>
-        <div className="flex items-center gap-5">
-          <div className="relative grid size-20 shrink-0 place-items-center sm:size-24">
-            <div aria-hidden className="shape-morph absolute inset-0 bg-primary/20" />
-            {icon === null ? (
-              <span className="shape-cookie9 display relative grid size-16 place-items-center bg-secondary-container text-3xl text-on-secondary-container sm:size-20">
-                {guild.name.slice(0, 2)}
-              </span>
-            ) : (
-              <Image
-                src={icon}
-                alt=""
-                width={80}
-                height={80}
-                className="shape-cookie9 relative size-16 sm:size-20"
-              />
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="label text-primary">Server settings</p>
-            <h1 className="display truncate text-[clamp(2.4rem,6vw,4.4rem)]">{guild.name}</h1>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-10">
+      <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:self-start">
+        <div className="flex items-center gap-3 rounded-m3-xl bg-surface-low p-3">
+          {icon === null ? (
+            <span className="shape-cookie9 grid size-12 shrink-0 place-items-center bg-secondary-container font-semibold text-on-secondary-container">
+              {guild.name.slice(0, 2)}
+            </span>
+          ) : (
+            <Image
+              src={icon}
+              alt=""
+              width={48}
+              height={48}
+              className="shape-cookie9 size-12 shrink-0"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{guild.name}</p>
+            <Link
+              href="/servers"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              <Icon name="arrowBack" className="size-3.5" />
+              Switch server
+            </Link>
           </div>
         </div>
-        <Tabs guildId={guildId} tabs={tabs} />
-      </header>
-      {children}
+        <Navigation guildId={guildId} />
+      </aside>
+
+      <div className="flex min-w-0 flex-col gap-6">
+        <ModuleFrame guildId={guildId} states={states} toggleAction={setModuleEnabled}>
+          {children}
+        </ModuleFrame>
+      </div>
     </div>
   );
 }

@@ -28,7 +28,8 @@ export default async function MusicPage({
     <div className="flex flex-col gap-4">
       <Notice code={(await searchParams).notice} />
       <Card
-        title="Music"
+        icon="tune"
+        title="Playback"
         description="Members play music with /music play. Playback runs on the Lavalink audio node."
       >
         <form action={saveMusicSettings} className="grid gap-3 sm:grid-cols-2">

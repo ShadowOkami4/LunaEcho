@@ -1,6 +1,7 @@
 import "server-only";
 
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { fetchBotGuildIds, fetchUserGuilds, type DiscordPartialGuild } from "./discord";
 import { canManage } from "./permissions";
@@ -40,7 +41,7 @@ export async function listManageableGuilds(session: ActiveSession): Promise<Mana
  * Checked on every page and every change: the signed-in user must be allowed to manage the
  * server and LunaEcho must be in it. Anything else looks like a missing page.
  */
-export async function requireManageableGuild(
+async function loadManageableGuild(
   guildId: string,
 ): Promise<Readonly<{ guild: ManageableGuild; session: ActiveSession }>> {
   const session = await requireSession();
@@ -52,3 +53,6 @@ export async function requireManageableGuild(
 
   return { guild, session };
 }
+
+/** Shared by the layout and the page of one request, so the check runs once per view. */
+export const requireManageableGuild = cache(loadManageableGuild);

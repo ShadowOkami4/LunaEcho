@@ -85,7 +85,8 @@ npm install
 cp .env.example .env        # PowerShell: Copy-Item .env.example .env
 docker compose up -d        # starts PostgreSQL and Lavalink
 npm run dev                 # the bot
-npm run dashboard           # the dashboard on http://localhost:3000 (after `npm run build`)
+npm run dashboard           # the dashboard in development mode on http://localhost:3000
+npm run dashboard:start     # the dashboard as a fast production build
 ```
 
 `.env` lives in the repository root. The bot applies pending database migrations when it starts.

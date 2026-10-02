@@ -166,13 +166,16 @@ export default async function RolesPage({
           <form action={deleteRoleMenu}>
             <HiddenGuild guildId={guildId} />
             <input type="hidden" name="menuId" value={menu.id} />
-            <Button tone="danger">Delete menu</Button>
+            <Button tone="remove" icon="delete">
+              Delete menu
+            </Button>
           </form>
         </Card>
       ))}
 
       {menus.length < maximumRoleMenusPerGuild && (
         <Card
+          icon="add"
           title="New role menu"
           description={`Members pick roles themselves with buttons or a drop-down. ${menus.length}/${maximumRoleMenusPerGuild} menus.`}
         >

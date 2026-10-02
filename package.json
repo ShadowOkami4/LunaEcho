@@ -23,6 +23,7 @@
     "db:generate": "npm run generate -w @lunaecho/db",
     "db:migrate": "npm run migrate -w @lunaecho/db",
     "dashboard": "npm run dev -w @lunaecho/dashboard",
+    "dashboard:start": "npm run build && npm run start -w @lunaecho/dashboard",
     "dev": "npm run dev -w @lunaecho/bot",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

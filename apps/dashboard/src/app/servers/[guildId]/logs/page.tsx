@@ -41,7 +41,8 @@ export default async function LogsPage({
     <div className="flex flex-col gap-4">
       <Notice code={(await searchParams).notice} />
       <Card
-        title="Logs"
+        icon="receiptLong"
+        title="Log channels"
         description="Pick a channel for each kind of event. Categories without a channel are not logged. Log entries never ping anyone."
       >
         <form action={saveLogSettings} className="grid gap-3 sm:grid-cols-2">

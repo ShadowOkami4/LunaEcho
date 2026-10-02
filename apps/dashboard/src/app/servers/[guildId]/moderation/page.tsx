@@ -21,30 +21,48 @@ import {
   setModerationFlag,
   updateAutomodRule,
 } from "../actions";
-import { Button, Card, HiddenGuild, inputClass, Notice } from "../ui";
+import { Icon } from "@/components/icon";
+
+import {
+  Button,
+  Card,
+  Chip,
+  Field,
+  HiddenGuild,
+  InputChip,
+  inputClass,
+  Notice,
+  Switch,
+  SwitchField,
+} from "../ui";
 
 export const dynamic = "force-dynamic";
 
 const configurableProfiles = ["off", "relaxed", "balanced", "strict"] as const;
 
 function FlagForm({
+  description,
   enabled,
   flag,
   guildId,
   label,
-}: Readonly<{ enabled: boolean; flag: string; guildId: string; label: string }>) {
+}: Readonly<{
+  description: string;
+  enabled: boolean;
+  flag: string;
+  guildId: string;
+  label: string;
+}>) {
   return (
     <form action={setModerationFlag} className="flex items-center justify-between gap-4">
       <HiddenGuild guildId={guildId} />
       <input type="hidden" name="flag" value={flag} />
       <input type="hidden" name="enabled" value={String(!enabled)} />
-      <span>
-        {label}:{" "}
-        <strong className={enabled ? "text-success" : "text-muted"}>
-          {enabled ? "on" : "off"}
-        </strong>
-      </span>
-      <Button tone="neutral">{enabled ? "Turn off" : "Turn on"}</Button>
+      <div>
+        <p className="font-medium">{label}</p>
+        <p className="text-sm text-muted">{description}</p>
+      </div>
+      <Switch label={`${label}: ${enabled ? "on" : "off"}`} on={enabled} />
     </form>
   );
 }
@@ -79,90 +97,134 @@ export default async function ModerationPage({
       <Notice code={(await searchParams).notice} />
 
       <Card
+        icon="tune"
         title="AutoMod profile"
-        description={`Current: ${automodProfileNames[settings.automodProfile]} — ${automodProfileDescriptions[settings.automodProfile]}`}
+        description={automodProfileDescriptions[settings.automodProfile]}
       >
-        <form action={applyAutomodProfile} className="flex flex-wrap items-center gap-3">
+        <form action={applyAutomodProfile} className="flex flex-col gap-3">
           <HiddenGuild guildId={guildId} />
-          <select name="profile" defaultValue="balanced" className={inputClass}>
-            {configurableProfiles.map((profile) => (
-              <option key={profile} value={profile}>
-                {automodProfileNames[profile]}
-              </option>
-            ))}
-          </select>
-          <Button>Apply profile</Button>
-          <span className="text-sm text-muted">Replaces all rule settings below.</span>
+          {/* An M3 connected button group: each button applies its profile at once. */}
+          <div role="group" aria-label="AutoMod profile" className="flex flex-wrap gap-1">
+            {configurableProfiles.map((profile) => {
+              const selected = settings.automodProfile === profile;
+
+              return (
+                <button
+                  key={profile}
+                  type="submit"
+                  name="profile"
+                  value={profile}
+                  aria-pressed={selected}
+                  className={`m3-button inline-flex h-10 items-center gap-2 px-5 text-sm font-semibold ${
+                    selected
+                      ? "bg-secondary-container text-on-secondary-container"
+                      : "bg-surface text-muted hover:bg-surface-high hover:text-on-surface"
+                  }`}
+                >
+                  {selected && <Icon name="checkCircle" className="-ml-1 size-[18px]" />}
+                  {automodProfileNames[profile]}
+                </button>
+              );
+            })}
+            {settings.automodProfile === "custom" && (
+              <span className="inline-flex h-10 items-center rounded-m3-md bg-secondary-container px-5 text-sm font-semibold text-on-secondary-container">
+                Custom
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-faint">
+            Choosing a profile replaces the settings of every rule below.
+          </p>
         </form>
       </Card>
 
-      <Card title="AutoMod rules" description="Each rule has its own response.">
-        <ul className="divide-y divide-outline">
+      <Card
+        icon="rule"
+        title="AutoMod rules"
+        description={`${settings.automodRules.filter((rule) => rule.enabled).length} of ${settings.automodRules.length} rules are on. Open a rule to change how it reacts.`}
+      >
+        <ul className="flex flex-col gap-2">
           {settings.automodRules.map((rule) => {
             const presentation = automodRuleCatalog[rule.kind];
 
             return (
-              <li key={rule.kind} className="py-3">
-                <form
-                  action={updateAutomodRule}
-                  className="flex flex-wrap items-center justify-between gap-3"
-                >
-                  <HiddenGuild guildId={guildId} />
-                  <input type="hidden" name="kind" value={rule.kind} />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">
-                      {presentation.emoji} {presentation.label}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {presentation.description} · {formatAutomodThreshold(rule)}
-                    </p>
-                  </div>
-                  <select name="enabled" defaultValue={String(rule.enabled)} className={inputClass}>
-                    <option value="true">On</option>
-                    <option value="false">Off</option>
-                  </select>
-                  <select name="action" defaultValue={rule.action} className={inputClass}>
-                    {automodRuleActions.map((action) => (
-                      <option key={action} value={action}>
-                        {automodActionNames[action]}
-                      </option>
-                    ))}
-                  </select>
-                  <Button tone="neutral">Save</Button>
-                  <div className="flex w-full flex-wrap gap-3 text-xs text-muted">
-                    {getAutomodThresholdConstraints(rule.kind).map((constraint) => (
-                      <label
-                        key={constraint.field}
-                        className="flex items-center gap-2"
-                        title={constraint.description}
+              <li key={rule.kind}>
+                <details className="group rounded-m3-lg bg-surface transition-colors open:bg-surface-high/60">
+                  <summary className="flex cursor-pointer items-center gap-3 rounded-m3-lg px-4 py-3 hover:bg-surface-high/70">
+                    <span
+                      aria-hidden
+                      className={`size-2.5 shrink-0 rounded-full ${rule.enabled ? "bg-success" : "bg-outline-strong/60"}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{presentation.label}</p>
+                      <p className="truncate text-sm text-muted">{formatAutomodThreshold(rule)}</p>
+                    </div>
+                    {rule.enabled ? (
+                      <Chip tone="primary">{automodActionNames[rule.action]}</Chip>
+                    ) : (
+                      <Chip>Off</Chip>
+                    )}
+                    <Icon name="expandMore" className="m3-chevron size-6 text-muted" />
+                  </summary>
+
+                  <form
+                    action={updateAutomodRule}
+                    className="flex flex-col gap-4 border-t border-outline/50 px-4 pt-4 pb-4"
+                  >
+                    <HiddenGuild guildId={guildId} />
+                    <input type="hidden" name="kind" value={rule.kind} />
+                    <p className="text-sm text-muted">{presentation.description}</p>
+                    <SwitchField
+                      name="enabled"
+                      label="Rule is on"
+                      description="When off, LunaEcho ignores this kind of message."
+                      defaultChecked={rule.enabled}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <Field label="Response">
+                        <select name="action" defaultValue={rule.action} className={inputClass}>
+                          {automodRuleActions.map((action) => (
+                            <option key={action} value={action}>
+                              {automodActionNames[action]}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      {getAutomodThresholdConstraints(rule.kind).map((constraint) => (
+                        <Field
+                          key={constraint.field}
+                          label={constraint.label}
+                          hint={constraint.description}
+                        >
+                          <input
+                            name={constraint.field}
+                            type="number"
+                            min={constraint.minimum}
+                            max={constraint.maximum}
+                            defaultValue={rule.threshold[constraint.field] ?? constraint.minimum}
+                            className={inputClass}
+                          />
+                        </Field>
+                      ))}
+                      <Field
+                        label="Timeout (minutes)"
+                        hint="Used by the “Delete + timeout” response."
                       >
-                        {constraint.label}
                         <input
-                          name={constraint.field}
+                          name="timeoutMinutes"
                           type="number"
-                          min={constraint.minimum}
-                          max={constraint.maximum}
-                          defaultValue={rule.threshold[constraint.field] ?? constraint.minimum}
-                          className={`${inputClass} w-20`}
+                          min={5}
+                          max={1440}
+                          defaultValue={rule.timeoutSeconds / 60}
+                          className={inputClass}
                         />
-                      </label>
-                    ))}
-                    <label
-                      className="flex items-center gap-2"
-                      title="Used by the delete and timeout response"
-                    >
-                      Timeout (minutes)
-                      <input
-                        name="timeoutMinutes"
-                        type="number"
-                        min={5}
-                        max={1440}
-                        defaultValue={rule.timeoutSeconds / 60}
-                        className={`${inputClass} w-20`}
-                      />
-                    </label>
-                  </div>
-                </form>
+                      </Field>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button icon="checkCircle">Save rule</Button>
+                    </div>
+                  </form>
+                </details>
               </li>
             );
           })}
@@ -171,14 +233,17 @@ export default async function ModerationPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card
+          collapsible
+          icon="block"
           title="Banned words"
           description={`${settings.bannedWords.length}/${maximumBannedWordsPerGuild} entries. Matching messages are deleted.`}
         >
           <FlagForm
+            description="Delete messages that contain a listed word."
             enabled={settings.bannedWordsEnabled}
             flag="bannedWords"
             guildId={guildId}
-            label="Filter"
+            label="Word filter"
           />
           <form action={addBannedWord} className="flex gap-2">
             <HiddenGuild guildId={guildId} />
@@ -195,34 +260,28 @@ export default async function ModerationPage({
           <ul className="flex flex-wrap gap-2">
             {settings.bannedWords.map((word) => (
               <li key={word.normalizedValue}>
-                <form
-                  action={removeBannedWord}
-                  className="flex items-center gap-1 rounded-full bg-surface-highest py-1 pr-1 pl-3 text-sm"
-                >
+                <form action={removeBannedWord}>
                   <HiddenGuild guildId={guildId} />
                   <input type="hidden" name="word" value={word.displayValue} />
-                  {word.displayValue}
-                  <button
-                    type="submit"
-                    aria-label={`Remove ${word.displayValue}`}
-                    className="rounded-full px-2 text-muted hover:bg-danger-container hover:text-danger"
-                  >
-                    ×
-                  </button>
+                  <InputChip removeLabel={`Remove ${word.displayValue}`}>
+                    {word.displayValue}
+                  </InputChip>
                 </form>
               </li>
             ))}
           </ul>
         </Card>
 
-        <Card title="Behaviour">
+        <Card collapsible icon="settings" title="Behaviour">
           <FlagForm
+            description="Members who can moderate are never acted on by AutoMod."
             enabled={settings.staffExempt}
             flag="staffExempt"
             guildId={guildId}
             label="Staff bypass AutoMod"
           />
           <FlagForm
+            description="Tell members privately when they are warned, timed out, or removed."
             enabled={settings.dmNotificationsEnabled}
             flag="dmNotifications"
             guildId={guildId}
@@ -231,7 +290,12 @@ export default async function ModerationPage({
         </Card>
       </div>
 
-      <Card title="Exceptions" description="AutoMod ignores these channels and roles.">
+      <Card
+        collapsible
+        icon="visibilityOff"
+        title="Exceptions"
+        description="AutoMod ignores these channels and roles."
+      >
         <div className="grid gap-6 lg:grid-cols-2">
           {(
             [
@@ -257,22 +321,15 @@ export default async function ModerationPage({
               <ul className="flex flex-wrap gap-2">
                 {exemptIds.map((id) => (
                   <li key={id}>
-                    <form
-                      action={setExemption}
-                      className="flex items-center gap-1 rounded-full bg-surface-highest py-1 pr-1 pl-3 text-sm"
-                    >
+                    <form action={setExemption}>
                       <HiddenGuild guildId={guildId} />
                       <input type="hidden" name="kind" value={kind} />
                       <input type="hidden" name="targetId" value={id} />
                       <input type="hidden" name="exempt" value="false" />
-                      {names.get(id) ?? id}
-                      <button
-                        type="submit"
-                        aria-label="Remove exception"
-                        className="rounded-full px-2 text-muted hover:bg-danger-container hover:text-danger"
-                      >
-                        ×
-                      </button>
+                      <InputChip removeLabel={`Remove exception for ${names.get(id) ?? id}`}>
+                        {kind === "channel" ? "#" : "@"}
+                        {names.get(id) ?? id}
+                      </InputChip>
                     </form>
                   </li>
                 ))}
@@ -282,7 +339,13 @@ export default async function ModerationPage({
         </div>
       </Card>
 
-      <Card title="Recent cases" description="The newest 20 moderation cases.">
+      <Card
+        collapsible
+        defaultOpen={false}
+        icon="history"
+        title="Recent cases"
+        description={`The newest ${cases.length} moderation cases.`}
+      >
         {cases.length === 0 ? (
           <p className="text-sm text-muted">No cases yet.</p>
         ) : (

@@ -248,3 +248,26 @@ export {
   type SocialFeedInput,
   type SocialPlatform,
 } from "./social/social-feed-service.js";
+export {
+  defaultWelcomeCardFontFolder,
+  maximumBackgroundUploadBytes,
+  prepareWelcomeCardBackground,
+  renderWelcomeCard,
+  welcomeCardBackgrounds,
+  WelcomeCardImageError,
+  welcomeCardLayouts,
+  welcomeCardSize,
+  type WelcomeCardBackground,
+  type WelcomeCardContent,
+  type WelcomeCardDesign,
+  type WelcomeCardLayout,
+} from "./welcome/welcome-card-renderer.js";
+export {
+  defaultWelcomeCard,
+  maximumWelcomeCardTextLength,
+  renderWelcomeCardText,
+  WelcomeCardInputError,
+  WelcomeCardService,
+  type WelcomeCardInput,
+  type WelcomeCardSettings,
+} from "./welcome/welcome-card-service.js";

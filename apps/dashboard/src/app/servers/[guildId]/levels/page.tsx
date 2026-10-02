@@ -10,6 +10,7 @@ import {
   Field,
   HiddenGuild,
   inputClass,
+  ListItem,
   MultiPicker,
   Notice,
   Picker,
@@ -49,7 +50,8 @@ export default async function LevelsPage({
       <Notice code={(await searchParams).notice} />
 
       <Card
-        title="Levels"
+        icon="tune"
+        title="Experience"
         description="Members earn XP for chatting and for time in voice. /rank shows their card and the leaderboard."
       >
         <form action={saveLevelSettings} className="grid gap-3 sm:grid-cols-2">
@@ -148,22 +150,27 @@ export default async function LevelsPage({
       </Card>
 
       <Card
+        icon="stars"
         title="Role rewards"
         description={`Members get these roles when they reach the level. ${rewards.length}/${maximumLevelRewards} rewards.`}
       >
         {rewards.length > 0 && (
-          <ul className="divide-y divide-outline">
+          <ul className="divide-y divide-outline/60">
             {rewards.map((reward) => (
-              <li key={reward.level} className="flex items-center justify-between gap-4 py-2">
-                <span>
-                  Level {reward.level} → @{roleName.get(reward.roleId) ?? "deleted role"}
-                </span>
+              <ListItem
+                key={reward.level}
+                icon="stars"
+                title={`Level ${reward.level}`}
+                supporting={`Gives @${roleName.get(reward.roleId) ?? "deleted role"}`}
+              >
                 <form action={removeLevelReward}>
                   <HiddenGuild guildId={guildId} />
                   <input type="hidden" name="level" value={reward.level} />
-                  <Button tone="danger">Remove</Button>
+                  <Button tone="remove" icon="delete">
+                    Remove
+                  </Button>
                 </form>
-              </li>
+              </ListItem>
             ))}
           </ul>
         )}
@@ -176,23 +183,35 @@ export default async function LevelsPage({
             <Picker name="roleId" defaultValue={null} options={roles} prefix="@" />
           </Field>
           <div className="flex items-end">
-            <Button>Add reward</Button>
+            <Button icon="add">Add reward</Button>
           </div>
         </form>
       </Card>
 
-      <Card title="Leaderboard" description={`${members.toLocaleString("en-US")} members have XP.`}>
+      <Card
+        icon="leaderboard"
+        title="Leaderboard"
+        description={`${members.toLocaleString("en-US")} members have XP.`}
+      >
         {leaderboard.length === 0 ? (
           <p className="text-sm text-muted">Nobody has earned XP yet.</p>
         ) : (
-          <ol className="flex flex-col gap-1 text-sm">
+          <ol className="divide-y divide-outline/60">
             {leaderboard.map((entry) => (
-              <li key={entry.userId} className="flex justify-between">
-                <span>
-                  #{entry.position} · <code>{entry.userId}</code>
+              <li key={entry.userId} className="flex items-center gap-4 py-2.5 text-sm">
+                <span
+                  className={`grid size-8 shrink-0 place-items-center rounded-full font-semibold ${
+                    entry.position <= 3
+                      ? "bg-primary-container text-on-primary-container"
+                      : "bg-surface-highest text-muted"
+                  }`}
+                >
+                  {entry.position}
                 </span>
-                <span className="text-muted">
-                  Level {entry.level} · {entry.totalXp.toLocaleString("en-US")} XP
+                <code className="min-w-0 flex-1 truncate text-muted">{entry.userId}</code>
+                <span className="font-medium">Level {entry.level}</span>
+                <span className="w-24 text-right text-muted">
+                  {entry.totalXp.toLocaleString("en-US")} XP
                 </span>
               </li>
             ))}

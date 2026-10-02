@@ -4,7 +4,17 @@ import { requireManageableGuild } from "@/lib/access";
 import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
 import { services } from "@/lib/services";
 
-import { Button, Card, Field, HiddenGuild, inputClass, Notice, Picker, textAreaClass } from "../ui";
+import {
+  Button,
+  Card,
+  Field,
+  HiddenGuild,
+  inputClass,
+  ListItem,
+  Notice,
+  Picker,
+  textAreaClass,
+} from "../ui";
 import { addSocialFeed, removeSocialFeed } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,31 +43,36 @@ export default async function SocialPage({
       <Notice code={(await searchParams).notice} />
 
       <Card
-        title="Social notifications"
+        icon="notifications"
+        title="Followed creators"
         description={`Announce new YouTube videos and Twitch streams. YouTube is checked every 5 minutes, Twitch every 2. ${feeds.length}/${maximumSocialFeedsPerGuild} creators.`}
       >
         {feeds.length === 0 ? (
           <p className="text-sm text-muted">Not following anyone yet.</p>
         ) : (
-          <ul className="divide-y divide-outline">
+          <ul className="divide-y divide-outline/60">
             {feeds.map((feed) => (
-              <li key={feed.id} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="font-medium">
-                    {feed.platform === "youtube" ? "📺" : "🔴"} {feed.displayName}
-                  </p>
-                  <p className="text-sm text-muted">
-                    → #{channelName.get(feed.channelId) ?? "deleted channel"}
+              <ListItem
+                key={feed.id}
+                icon={feed.platform === "youtube" ? "smartDisplay" : "videocam"}
+                title={feed.displayName}
+                supporting={
+                  <>
+                    {feed.platform === "youtube" ? "YouTube" : "Twitch"} · posts in #
+                    {channelName.get(feed.channelId) ?? "deleted channel"}
                     {feed.pingRoleId !== null &&
-                      ` · pings @${roleName.get(feed.pingRoleId) ?? "deleted role"}`}
-                  </p>
-                </div>
+                      ` · mentions @${roleName.get(feed.pingRoleId) ?? "deleted role"}`}
+                  </>
+                }
+              >
                 <form action={removeSocialFeed}>
                   <HiddenGuild guildId={guildId} />
                   <input type="hidden" name="feedId" value={feed.id} />
-                  <Button tone="danger">Remove</Button>
+                  <Button tone="remove" icon="delete">
+                    Remove
+                  </Button>
                 </form>
-              </li>
+              </ListItem>
             ))}
           </ul>
         )}
@@ -65,6 +80,7 @@ export default async function SocialPage({
 
       {feeds.length < maximumSocialFeedsPerGuild && (
         <Card
+          icon="personAdd"
           title="Follow a creator"
           description="Only uploads after adding are announced. Twitch needs TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET on the bot."
         >
@@ -102,7 +118,7 @@ export default async function SocialPage({
               <textarea name="message" maxLength={1000} className={textAreaClass} />
             </Field>
             <div className="sm:col-span-2">
-              <Button>Follow</Button>
+              <Button icon="add">Follow</Button>
             </div>
           </form>
         </Card>

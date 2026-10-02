@@ -2,6 +2,7 @@ import { toError, type AppLogger } from "@lunaecho/core";
 import type { LunaDatabase } from "@lunaecho/db";
 import {
   renderWelcomeTemplate,
+  WelcomeCardService,
   WelcomeSettingsService,
   type WelcomeSettings,
 } from "@lunaecho/modules";
@@ -10,6 +11,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  type AttachmentBuilder,
   type Client,
   type GuildMember,
   type MessageActionRowComponentBuilder,
@@ -27,6 +29,7 @@ import type {
 } from "../../infrastructure/discord/commands/component-interaction-registry.js";
 import { respondWithPanelEphemerally } from "../../infrastructure/discord/commands/interaction-responder.js";
 import { createPanel } from "../../infrastructure/discord/components/panel.js";
+import { WelcomeCardPainter } from "./welcome-card-painter.js";
 
 export const verificationButtonId = "verify:confirm";
 
@@ -42,25 +45,38 @@ function templateValues(member: GuildMember | PartialGuildMember) {
   };
 }
 
+/** Sends the text, the card, or both; with neither there is nothing to send. */
 async function sendToChannel(
   client: Client,
   channelId: string | null,
   template: string | null,
   member: GuildMember | PartialGuildMember,
+  card: () => Promise<AttachmentBuilder | undefined>,
 ): Promise<void> {
-  if (channelId === null || template === null) {
+  if (channelId === null) {
     return;
   }
 
   const channel = client.channels.cache.get(channelId);
 
-  if (channel?.isSendable() === true) {
-    await channel.send({
-      // Only the new member may be pinged; templates can never reach @everyone or roles.
-      allowedMentions: { users: [member.id] },
-      content: renderWelcomeTemplate(template, templateValues(member)),
-    });
+  if (channel?.isSendable() !== true) {
+    return;
   }
+
+  const attachment = await card();
+
+  if (template === null && attachment === undefined) {
+    return;
+  }
+
+  await channel.send({
+    // Only the new member may be pinged; templates can never reach @everyone or roles.
+    allowedMentions: { users: [member.id] },
+    ...(template === null
+      ? {}
+      : { content: renderWelcomeTemplate(template, templateValues(member)) }),
+    ...(attachment === undefined ? {} : { files: [attachment] }),
+  });
 }
 
 /** Autoroles wait until a member passed Discord's membership screening. */
@@ -130,12 +146,14 @@ class VerificationHandler implements ComponentInteractionHandler {
 export function createWelcomeModule(context: ModuleContext, database: LunaDatabase): BotModule {
   const logger = context.logger.child({ component: "welcome" });
   const settings = new WelcomeSettingsService(database);
+  const painter = new WelcomeCardPainter(new WelcomeCardService(database), logger);
   const runs = (guildId: string) => context.moduleRuns(guildId, "onboarding");
 
   return {
     components: [new VerificationHandler(settings, logger)],
     invalidate: (guildId) => {
       settings.invalidate(guildId);
+      painter.invalidate(guildId);
     },
     listeners: [
       listen("guildMemberAdd", "welcome.join", async (member) => {
@@ -149,6 +167,7 @@ export function createWelcomeModule(context: ModuleContext, database: LunaDataba
           current.welcomeChannelId,
           current.welcomeMessage,
           member,
+          () => painter.paint(member, "welcome"),
         );
 
         if (member.user.bot) {
@@ -187,6 +206,7 @@ export function createWelcomeModule(context: ModuleContext, database: LunaDataba
             current.goodbyeChannelId,
             current.goodbyeMessage,
             member,
+            () => painter.paint(member, "goodbye"),
           );
         }
       }),

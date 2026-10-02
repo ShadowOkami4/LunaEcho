@@ -19,6 +19,7 @@ import {
   RoleMenuService,
   SocialFeedService,
   TicketService,
+  WelcomeCardService,
   WelcomeSettingsService,
 } from "@lunaecho/modules";
 import pino from "pino";
@@ -38,6 +39,7 @@ export type DashboardServices = Readonly<{
   social: SocialFeedService;
   tickets: TicketService;
   welcome: WelcomeSettingsService;
+  welcomeCards: WelcomeCardService;
   /** Tells the bot about changes so it reloads settings at once. */
   tasks: BotTaskQueue;
   voiceRooms: DrizzleVoiceRoomRepository;
@@ -84,6 +86,7 @@ async function createServices(): Promise<DashboardServices> {
     tickets: new TicketService(db),
     voiceRooms: new DrizzleVoiceRoomRepository(db),
     welcome: new WelcomeSettingsService(db),
+    welcomeCards: new WelcomeCardService(db),
   };
 }
 

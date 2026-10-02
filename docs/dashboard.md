@@ -20,7 +20,8 @@ configure its modules. It reads and writes the same PostgreSQL database as the b
 3. Make sure the database is migrated: start the bot once or run `npm run db:migrate`. The
    dashboard never migrates on its own.
 4. `npm run build` once (the dashboard uses the compiled workspace packages), then
-   `npm run dashboard` for development or `npm run start -w @lunaecho/dashboard` for production.
+   `npm run dashboard` while developing (pages compile on first visit, so they load slowly) or
+   `npm run dashboard:start` for a fast production build on the same port.
 
 ## Pages
 
@@ -33,7 +34,7 @@ configure its modules. It reads and writes the same PostgreSQL database as the b
 | Music       | DJ role and default volume                                                                |
 | Levels      | XP rates, cooldown, announcements, ignored channels and roles, role rewards, leaderboard  |
 | Logs        | One channel per log category, ignored channels                                            |
-| Welcome     | Welcome, goodbye, and DM texts, autoroles, verification role; posts the verify panel      |
+| Welcome     | Messages, autoroles, verification, and the welcome card designer with live preview        |
 | Roles       | Creates, edits, posts, and deletes role menus                                             |
 | Tickets     | Ticket channel, transcript channel, team roles, limit per member; posts the ticket panel  |
 | Automation  | Creates, edits, switches, and deletes rules                                               |
@@ -58,3 +59,15 @@ HTTP-only cookie, never in the URL, so a crafted link cannot show arbitrary text
   role ids from forms are checked against the server's real channels and roles before saving.
 - **Sign-out** accepts only POST, so other sites cannot sign anyone out through a link.
 - The bot token is used server-side only, to read the server's channels and roles.
+
+## Welcome cards
+
+The bot draws welcome and goodbye cards with `@napi-rs/canvas`: the member's avatar with an accent
+ring, a title, and a subtitle on a preset background or an uploaded picture. The designer on the
+Welcome page shows a live preview, drawn on the server by the same renderer with the signed-in
+user as the sample member (`/servers/[guildId]/welcome/card-preview`, managers only).
+
+Uploaded pictures are decoded, cropped to 1024 x 450, and re-encoded as JPEG before they are
+stored in PostgreSQL, so nothing of the original file survives and anything that is not a picture
+is rejected. The bot never downloads pictures from user-supplied addresses; avatars come from
+Discord's CDN only.

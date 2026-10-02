@@ -22,6 +22,8 @@ import { requireManageableGuild } from "@/lib/access";
 import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
 import { services } from "@/lib/services";
 
+import { sections } from "./sections";
+
 const snowflake = z.string().regex(/^\d{17,20}$/);
 
 /** Every action re-checks access: a form can be replayed long after the page was loaded. */
@@ -83,7 +85,10 @@ export async function setModuleEnabled(formData: FormData): Promise<void> {
     actorId,
   );
   await app.tasks.enqueue("settings-changed", guildId, { module: "modules" });
-  done(guildId, "", result === "not-available" ? "module-planned" : "saved");
+  // The switch exists on the overview and on each module's own page; return to where it was.
+  const returnTo = text(formData, "returnTo");
+  const page = sections.some((section) => section.href === returnTo) ? returnTo : "";
+  done(guildId, page, result === "not-available" ? "module-planned" : "saved");
 }
 
 export async function applyAutomodProfile(formData: FormData): Promise<void> {
