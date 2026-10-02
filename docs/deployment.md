@@ -35,7 +35,17 @@ Docker publishes ports past `ufw`, so every published port binds to `127.0.0.1` 
 4. Install `deploy/cloud/nginx-lunaecho.conf` as an nginx site and run
    `sudo certbot --nginx -d <host> --redirect`.
 5. Add `<DASHBOARD_URL>/api/auth/callback` as an OAuth2 redirect in the Developer Portal.
-6. Make sure no other process uses the same bot token, then `docker compose up -d`.
+6. Apply the database migrations before anything reads the database. The bot does this when it
+   starts, but the dashboard never migrates, so run them once on their own (this never connects
+   to Discord):
+
+   ```bash
+   docker compose run --rm --no-deps --entrypoint node bot --input-type=module -e      'import { connectDatabase } from "@lunaecho/db";
+      const db = await connectDatabase({ connectionString: process.env.DATABASE_URL });
+      await db.close();'
+   ```
+
+7. Make sure no other process uses the same bot token, then `docker compose up -d`.
 
 ### Updating
 
