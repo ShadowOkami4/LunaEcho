@@ -13,7 +13,8 @@
     "packages/db",
     "packages/modules",
     "apps/bot",
-    "apps/dashboard"
+    "apps/dashboard",
+    "apps/orchestrator"
   ],
   "scripts": {
     "bench": "npm run bench -w @lunaecho/bot",

@@ -1,4 +1,6 @@
 import { logLevels, runtimeModes, type LogLevel, type RuntimeMode } from "@lunaecho/core";
+import { readFileSync } from "node:fs";
+
 import { z } from "zod";
 
 const environmentSchema = z.object({
@@ -79,8 +81,36 @@ export class ConfigurationError extends Error {
   }
 }
 
+/** Secrets that may also come from a file, the way Docker secrets are mounted. */
+const fileSecrets = ["DATABASE_URL", "DISCORD_TOKEN", "LAVALINK_PASSWORD"] as const;
+
+/**
+ * Fills `NAME` from the file named in `NAME_FILE` when only the file is given. Secrets in files
+ * stay out of `docker inspect` and the process list, which matters for customers' bot tokens.
+ */
+export function resolveSecretFiles(
+  environment: NodeJS.ProcessEnv,
+  readFile: (path: string) => string = (path) => readFileSync(path, "utf8"),
+): NodeJS.ProcessEnv {
+  const resolved = { ...environment };
+
+  for (const name of fileSecrets) {
+    const path = environment[`${name}_FILE`];
+
+    if (path !== undefined && path !== "" && (environment[name] ?? "") === "") {
+      try {
+        resolved[name] = readFile(path).trim();
+      } catch {
+        throw new ConfigurationError([`${name}_FILE: the file cannot be read`]);
+      }
+    }
+  }
+
+  return resolved;
+}
+
 export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
-  const result = environmentSchema.safeParse(environment);
+  const result = environmentSchema.safeParse(resolveSecretFiles(environment));
 
   if (!result.success) {
     throw new ConfigurationError(

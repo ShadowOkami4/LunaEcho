@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ConfigurationError, loadConfig } from "../../src/config/environment.js";
+import {
+  ConfigurationError,
+  loadConfig,
+  resolveSecretFiles,
+} from "../../src/config/environment.js";
 
 const databaseUrl = "postgresql://lunaecho:secret-password@localhost:5432/lunaecho";
 
@@ -90,5 +94,29 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...base, LAVALINK_URL: "http://localhost:2333" })).toThrow(
       ConfigurationError,
     );
+  });
+
+  it("reads secrets from files, the way Docker secrets are mounted", () => {
+    const files: Record<string, string> = { "/run/secrets/token": "file-token\n" };
+    const resolved = resolveSecretFiles(
+      { DISCORD_TOKEN_FILE: "/run/secrets/token", DATABASE_URL: "postgres://direct" },
+      (path) => {
+        const content = files[path];
+
+        if (content === undefined) {
+          throw new Error("missing");
+        }
+
+        return content;
+      },
+    );
+
+    expect(resolved["DISCORD_TOKEN"]).toBe("file-token");
+    expect(resolved["DATABASE_URL"]).toBe("postgres://direct");
+    expect(() =>
+      resolveSecretFiles({ DISCORD_TOKEN_FILE: "/nope" }, () => {
+        throw new Error("missing");
+      }),
+    ).toThrow(ConfigurationError);
   });
 });

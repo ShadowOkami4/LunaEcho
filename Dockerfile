@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# One build for the bot and the dashboard; pick one with --target bot or --target dashboard.
+# One build for every LunaEcho process; pick one with --target bot, dashboard, or orchestrator.
 # Secrets are never built in: they come from the environment when a container starts.
 
 FROM node:24-bookworm-slim AS base
@@ -15,6 +15,7 @@ COPY packages/db/package.json packages/db/
 COPY packages/modules/package.json packages/modules/
 COPY apps/bot/package.json apps/bot/
 COPY apps/dashboard/package.json apps/dashboard/
+COPY apps/orchestrator/package.json apps/orchestrator/
 
 FROM manifests AS build
 RUN npm ci --ignore-scripts
@@ -53,3 +54,12 @@ COPY --from=build --chown=node:node /app/apps/dashboard/.next apps/dashboard/.ne
 WORKDIR /app/apps/dashboard
 EXPOSE 3000
 CMD ["node", "/app/node_modules/next/dist/bin/next", "start", "--port", "3000"]
+
+# The only LunaEcho process with Docker access. It runs as root because the Docker socket is
+# root-only; it publishes no port and accepts no requests.
+FROM runtime AS orchestrator
+USER root
+COPY --from=build /app/apps/orchestrator/package.json apps/orchestrator/
+COPY --from=build /app/apps/orchestrator/dist apps/orchestrator/dist
+WORKDIR /app/apps/orchestrator
+CMD ["node", "dist/main.js"]

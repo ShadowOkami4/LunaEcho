@@ -1,0 +1,144 @@
+import { randomBytes } from "node:crypto";
+
+import { customBots, type DatabaseConnection } from "@lunaecho/db";
+import { createTestDatabase, resetTestDatabase } from "@lunaecho/db/testing";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+
+import {
+  BotTokenError,
+  CustomBotError,
+  CustomBotService,
+  inspectBotToken,
+  TokenVault,
+  type BotTokenInspection,
+} from "../src/index.js";
+
+const token = "MTIzNDU2Nzg5MDEyMzQ1Njc4.Gabcde.not-a-real-token-but-shaped-like-one";
+const inspection = (applicationId: string): BotTokenInspection => ({
+  applicationId,
+  avatarHash: null,
+  botUserId: `bot-${applicationId}`,
+  hasMembersIntent: true,
+  hasMessageContentIntent: true,
+  name: `Bot ${applicationId}`,
+});
+
+describe("CustomBotService", () => {
+  let connection: DatabaseConnection;
+  let service: CustomBotService;
+
+  beforeAll(async () => {
+    connection = await createTestDatabase();
+    service = new CustomBotService(connection.db, new TokenVault(randomBytes(32)));
+  });
+
+  afterEach(async () => {
+    await resetTestDatabase(connection.db);
+  });
+
+  afterAll(async () => {
+    await connection.close();
+  });
+
+  it("needs a granted slot, and stores the token only sealed", async () => {
+    await expect(service.create("alice", token, inspection("app-1"))).rejects.toMatchObject({
+      reason: "no-slot",
+    });
+
+    await service.grant("alice", 1, "operator");
+    const bot = await service.create("alice", token, inspection("app-1"));
+    const [stored] = await connection.db.select().from(customBots);
+
+    expect(bot).toMatchObject({ desiredState: "running", status: "pending" });
+    expect(stored?.sealedToken).not.toContain(token);
+    expect(stored?.databaseName).toMatch(/^lunaecho_custom_[0-9a-f]{16}$/);
+
+    const [deployment] = await service.listDeployments();
+    expect(deployment === undefined ? undefined : service.openToken(deployment)).toBe(token);
+  });
+
+  it("keeps slots exact under concurrent submissions and refuses a known application", async () => {
+    await service.grant("alice", 2, "operator");
+
+    const results = await Promise.allSettled(
+      ["a", "b", "c", "d"].map((app) => service.create("alice", token, inspection(app))),
+    );
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+    await service.grant("bob", 1, "operator");
+    await expect(service.create("bob", token, inspection("a"))).rejects.toMatchObject({
+      reason: "already-registered",
+    });
+  });
+
+  it("shows owners only their own bots", async () => {
+    await service.grant("alice", 1, "operator");
+    const bot = await service.create("alice", token, inspection("app-1"));
+
+    await expect(service.listOwned("bob")).resolves.toEqual([]);
+    await expect(service.getOwned("bob", bot.id)).rejects.toBeInstanceOf(CustomBotError);
+    await expect(service.setDesiredState("bob", bot.id, "stopped")).rejects.toBeInstanceOf(
+      CustomBotError,
+    );
+  });
+
+  it("replaces tokens only for the same application, and frees the slot after deletion", async () => {
+    await service.grant("alice", 1, "operator");
+    const bot = await service.create("alice", token, inspection("app-1"));
+
+    await expect(
+      service.replaceToken("alice", bot.id, token, inspection("app-2")),
+    ).rejects.toMatchObject({ reason: "different-application" });
+
+    await service.setDesiredState("alice", bot.id, "deleted");
+    await expect(service.listOwned("alice")).resolves.toEqual([]);
+    await service.forget(bot.id);
+    await expect(service.create("alice", token, inspection("app-1"))).resolves.toBeDefined();
+  });
+
+  it("lists grants with their use", async () => {
+    await service.grant("alice", 2, "operator", "beta tester");
+    await service.create("alice", token, inspection("app-1"));
+
+    await expect(service.listGrants()).resolves.toEqual([
+      { note: "beta tester", slots: 2, used: 1, userId: "alice" },
+    ]);
+  });
+});
+
+describe("inspectBotToken", () => {
+  const reply = (status: number, body: unknown) =>
+    (() => Promise.resolve(new Response(JSON.stringify(body), { status }))) as typeof fetch;
+
+  it("reads the application, bot user, and intents", async () => {
+    await expect(
+      inspectBotToken(
+        token,
+        reply(200, {
+          bot: { avatar: "abc", id: "999", username: "Kitty" },
+          flags: 1 << 15,
+          id: "123",
+        }),
+      ),
+    ).resolves.toEqual({
+      applicationId: "123",
+      avatarHash: "abc",
+      botUserId: "999",
+      hasMembersIntent: true,
+      hasMessageContentIntent: false,
+      name: "Kitty",
+    });
+  });
+
+  it("refuses malformed and rejected tokens without calling Discord for the first", async () => {
+    let calls = 0;
+    const counting = (() => {
+      calls += 1;
+      return Promise.resolve(new Response("{}", { status: 401 }));
+    }) as typeof fetch;
+
+    await expect(inspectBotToken("hello", counting)).rejects.toBeInstanceOf(BotTokenError);
+    expect(calls).toBe(0);
+    await expect(inspectBotToken(token, counting)).rejects.toThrow("does not accept");
+  });
+});

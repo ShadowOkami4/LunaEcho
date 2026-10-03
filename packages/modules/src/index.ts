@@ -271,3 +271,18 @@ export {
   type WelcomeCardInput,
   type WelcomeCardSettings,
 } from "./welcome/welcome-card-service.js";
+export { TokenVault, TokenVaultError } from "./platform/token-vault.js";
+export {
+  BotTokenError,
+  inspectBotToken,
+  type BotTokenInspection,
+} from "./platform/bot-token-inspection.js";
+export {
+  CustomBotError,
+  CustomBotService,
+  maximumCustomBotSlots,
+  type CustomBot,
+  type CustomBotDeployment,
+  type CustomBotDesiredState,
+  type CustomBotStatus,
+} from "./platform/custom-bot-service.js";

@@ -1,0 +1,97 @@
+# LunaEcho Custom: customers' own bots, started by the orchestrator, plus what they share.
+#
+# Customer bots are not listed here: the orchestrator creates one container per bot from the
+# custom_bots table in the Cloud database. Nothing in this project publishes a port.
+#
+# Needs the Cloud project (deploy/cloud) running first: the orchestrator reads its database.
+
+name: lunaecho-custom
+
+services:
+  # One database per customer lives here, each with its own login role.
+  custom-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${CUSTOM_POSTGRES_PASSWORD:?set CUSTOM_POSTGRES_PASSWORD in .env}
+    volumes:
+      - custom-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 512m
+
+  # One Lavalink node for every Custom bot's music.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    restart: unless-stopped
+    environment:
+      _JAVA_OPTIONS: -Xmx512M
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:?set LAVALINK_PASSWORD in .env}
+      YT_CIPHER_TOKEN: ${YT_CIPHER_TOKEN:?set YT_CIPHER_TOKEN in .env}
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/plugins:/opt/Lavalink/plugins:ro
+    depends_on:
+      - yt-cipher
+    mem_limit: 768m
+
+  yt-cipher:
+    image: ghcr.io/kikkia/yt-cipher:master
+    restart: unless-stopped
+    environment:
+      API_TOKEN: ${YT_CIPHER_TOKEN}
+      OVERRIDE_PLAYER_VARIANT: IAS
+    mem_limit: 256m
+
+  # The only LunaEcho process with Docker access; it publishes no port.
+  orchestrator:
+    image: lunaecho-orchestrator:${LUNAECHO_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      CONTROL_DATABASE_URL: postgres://lunaecho:${CLOUD_POSTGRES_PASSWORD:?set CLOUD_POSTGRES_PASSWORD in .env}@postgres:5432/lunaecho
+      CUSTOM_DATABASE_ADMIN_URL: postgres://postgres:${CUSTOM_POSTGRES_PASSWORD}@custom-postgres:5432/postgres
+      CUSTOM_DATABASE_HOST: custom-postgres:5432
+      CUSTOM_BOT_IMAGE: lunaecho-bot:${LUNAECHO_VERSION:-latest}
+      CUSTOM_NETWORK: lunaecho-custom
+      CUSTOM_SECRETS_VOLUME: lunaecho-custom-secrets
+      LAVALINK_URL: lavalink:2333
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD}
+      TOKEN_KEY_FILE: /run/secrets/token-key
+    secrets:
+      - token-key
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - custom-secrets:/secrets
+    networks:
+      - default
+      - cloud
+    depends_on:
+      custom-postgres:
+        condition: service_healthy
+    mem_limit: 192m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+networks:
+  # Fixed names, so the containers the orchestrator creates can join them.
+  default:
+    name: lunaecho-custom
+  cloud:
+    name: lunaecho-cloud_default
+    external: true
+
+volumes:
+  custom-postgres-data:
+  custom-secrets:
+    name: lunaecho-custom-secrets
+
+secrets:
+  # The key that seals customers' bot tokens; shared only with the Cloud dashboard.
+  token-key:
+    file: ../lunaecho-platform/token.key
