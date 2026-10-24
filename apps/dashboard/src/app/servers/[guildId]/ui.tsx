@@ -96,7 +96,7 @@ export function Card({
   const header = (
     <>
       {icon !== undefined && (
-        <span className="shape-cookie9 grid size-11 shrink-0 place-items-center bg-secondary-container text-on-secondary-container">
+        <span className="shape-cookie9 grid size-11 shrink-0 place-items-center icon-tile">
           <Icon name={icon} className="size-5" />
         </span>
       )}
@@ -112,7 +112,7 @@ export function Card({
 
   if (collapsible) {
     return (
-      <details open={defaultOpen} className="m3-card rise border border-outline/50 bg-surface-low">
+      <details open={defaultOpen} className="m3-card rise shadow-edge bg-surface-low">
         <summary className="flex cursor-pointer items-start gap-4 rounded-m3-xl p-5 hover:bg-surface/60 sm:p-6">
           {header}
           <Icon name="expandMore" className="m3-chevron mt-2 size-6 text-muted" />
@@ -123,7 +123,7 @@ export function Card({
   }
 
   return (
-    <section className="m3-card rise flex flex-col gap-5 border border-outline/50 bg-surface-low p-5 sm:p-6">
+    <section className="m3-card rise flex flex-col gap-5 shadow-edge bg-surface-low p-5 sm:p-6">
       <header className="flex items-start gap-4">{header}</header>
       <div className="flex flex-col gap-4">{children}</div>
     </section>

@@ -26,7 +26,7 @@ export default async function ServersPage() {
       </header>
 
       {guilds.length === 0 ? (
-        <div className="m3-card flex flex-col items-center gap-3 border border-outline/50 bg-surface-low p-10 text-center">
+        <div className="m3-card flex flex-col items-center gap-3 shadow-edge bg-surface-low p-10 text-center">
           <Icon name="dns" className="size-10 text-faint" />
           <p className="title-medium">No servers to manage</p>
           <p className="max-w-md text-sm text-muted">
@@ -42,11 +42,11 @@ export default async function ServersPage() {
               <li
                 key={guild.id}
                 style={delay(Math.min(index, 8) * 40)}
-                className="m3-card m3-card-interactive rise flex flex-col gap-5 border border-outline/50 bg-surface-low p-5"
+                className="m3-card m3-card-interactive rise flex flex-col gap-5 shadow-edge bg-surface-low p-5"
               >
                 <div className="flex items-center gap-4">
                   {icon === null ? (
-                    <span className="shape-cookie9 grid size-14 shrink-0 place-items-center bg-secondary-container text-lg font-semibold text-on-secondary-container">
+                    <span className="shape-cookie9 grid size-14 shrink-0 place-items-center icon-tile text-lg font-semibold">
                       {guild.name.slice(0, 2)}
                     </span>
                   ) : (

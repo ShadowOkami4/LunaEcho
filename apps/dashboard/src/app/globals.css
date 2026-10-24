@@ -3,7 +3,7 @@
 /*
  * LunaEcho dashboard: Material 3 Expressive, in the same design language as
  * shadowokami.com/LunaEcho. Colour roles are the LunaEcho M3 scheme (seed #ff85d2,
- * tertiary #8bc7ff), type is Roboto Flex with a condensed display width, and
+ * tertiary #d29bff), type is Roboto Flex with a condensed display width, and
  * shapes and springs come from the same token set as the product page.
  */
 
@@ -31,8 +31,8 @@
 }
 
 @theme {
-  /* Surfaces, lowest to highest. */
-  --color-background: #140c10;
+  /* Surfaces, lowest to highest. The page itself is the lowest surface mixed 38 % with black. */
+  --color-background: #080506;
   --color-surface-lowest: #140c10;
   --color-surface-low: #22191e;
   --color-surface: #261d22;
@@ -53,9 +53,9 @@
   --color-on-primary-container: #7b125f;
   --color-secondary-container: #683a56;
   --color-on-secondary-container: #ffd8eb;
-  --color-tertiary: #9ecfff;
-  --color-tertiary-container: #78b4eb;
-  --color-on-tertiary-container: #00456e;
+  --color-tertiary: #e2bcff;
+  --color-tertiary-container: #cf98fc;
+  --color-on-tertiary-container: #5b2885;
   --color-success: #8fe3b0;
   --color-success-container: #0f5132;
   --color-danger: #ffb4ab;
@@ -71,6 +71,9 @@
   --radius-m3-xxl: 48px;
 
   --font-sans: "Roboto Flex", "Segoe UI", system-ui, sans-serif;
+
+  /* The hairline edge of every card, instead of an outline border. */
+  --shadow-edge: inset 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
 :root {
@@ -631,14 +634,62 @@ body::before {
   background:
     radial-gradient(
       52rem 38rem at 85% -6%,
-      color-mix(in srgb, var(--color-primary-container) 9%, transparent),
+      color-mix(in srgb, var(--color-primary-container) 14%, transparent),
       transparent 70%
     ),
     radial-gradient(
       40rem 34rem at 6% 62%,
-      color-mix(in srgb, var(--color-tertiary) 4%, transparent),
+      color-mix(in srgb, var(--color-tertiary) 5%, transparent),
       transparent 72%
     );
+}
+
+/* The product page's grid: faint pink-tinted lines that fade out towards the edges. */
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  content: "";
+  pointer-events: none;
+  --grid-line: color-mix(in srgb, var(--color-primary) 9%, rgb(255 255 255 / 0.055));
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-position: center top;
+  background-size: 72px 72px;
+  mask-image: radial-gradient(
+    130% 95% at 50% 10%,
+    #000 20%,
+    rgb(0 0 0 / 0.35) 62%,
+    transparent 92%
+  );
+}
+
+/* Top app bar: a floating near-black glass pill that firms up once the page scrolls. */
+.app-bar {
+  background: color-mix(in srgb, var(--color-background) 58%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.07),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+
+@keyframes app-bar-firm {
+  to {
+    background: color-mix(in srgb, var(--color-surface-lowest) 84%, transparent);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.08),
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 12px 32px rgb(0 0 0 / 0.5);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .app-bar {
+    animation: app-bar-firm linear both;
+    animation-range: 0 80px;
+    animation-timeline: scroll(root);
+  }
 }
 
 ::selection {
@@ -654,11 +705,13 @@ body::before {
 /* ─── Type roles ─────────────────────────────────────────────────────────── */
 
 /* M3 type scale (Roboto Flex). Emphasized roles are heavier, as M3 Expressive suggests. */
+/* Page and card titles use the condensed display cut of the product page. */
 .headline-large {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 2.5rem;
+  font-size: 2.75rem;
+  font-stretch: 42%;
+  font-weight: 760;
+  letter-spacing: -0.005em;
+  line-height: 1;
 }
 
 .headline-small {
@@ -668,9 +721,11 @@ body::before {
 }
 
 .title-large {
-  font-size: 1.375rem;
-  font-weight: 600;
-  line-height: 1.75rem;
+  font-size: 1.75rem;
+  font-stretch: 42%;
+  font-weight: 760;
+  letter-spacing: -0.005em;
+  line-height: 1.05;
 }
 
 .title-medium {
@@ -733,6 +788,17 @@ body::before {
   clip-path: var(--shape-gem);
 }
 
+/* Icon tiles: a soft pink shape holding the icon, as on the product page. */
+.icon-tile {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+}
+
+.icon-tile-off {
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: var(--color-faint);
+}
+
 /* A slow ambient morph through the shape library, for hero art. */
 @keyframes shape-morph {
   0% {
@@ -779,7 +845,7 @@ body::before {
 
 :is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
   .shape-cookie9 {
-  clip-path: var(--shape-sunny);
+  clip-path: var(--shape-clover);
 }
 
 :is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
@@ -789,14 +855,14 @@ body::before {
 
 /* Icons (not pictures) also turn a little, which reads as playful but stays calm. */
 :is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
-  span.shape-cookie9 {
-  rotate: 18deg;
+  span.shape-cookie9:has(> svg) {
+  rotate: 45deg;
 }
 
 :is(a, button, summary, .m3-card-interactive, .morph-trigger):is(:hover, :focus-visible)
   span.shape-cookie9
   > svg {
-  rotate: -18deg;
+  rotate: -45deg;
   transition: rotate var(--spring-default-duration) var(--spring-default);
 }
 
@@ -812,9 +878,11 @@ body::before {
 
 .m3-card-interactive:hover {
   border-radius: var(--radius-m3-xxl);
-  background-color: var(--color-surface-high);
-  box-shadow: 0 14px 34px rgb(0 0 0 / 0.32);
-  translate: 0 -3px;
+  background-color: var(--color-surface);
+  box-shadow:
+    var(--shadow-edge),
+    0 14px 34px rgb(0 0 0 / 0.32);
+  translate: 0 -4px;
 }
 
 /* M3 Expressive buttons: round at rest, squarer and slightly smaller while pressed. */

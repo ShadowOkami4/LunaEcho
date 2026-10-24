@@ -156,7 +156,7 @@ export function CardDesigner({
       <input type="hidden" name="guildId" value={guildId} />
 
       <div className="flex flex-col gap-3 xl:sticky xl:top-24 xl:self-start">
-        <div className="relative overflow-hidden rounded-m3-xl border border-outline/50 bg-surface">
+        <div className="relative overflow-hidden rounded-m3-xl shadow-edge bg-surface">
           <img
             ref={image}
             src={previewSource}

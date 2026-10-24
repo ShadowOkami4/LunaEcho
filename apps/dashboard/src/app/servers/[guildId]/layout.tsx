@@ -31,9 +31,9 @@ export default async function GuildLayout({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-10">
       <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:self-start">
-        <div className="flex items-center gap-3 rounded-m3-xl bg-surface-low p-3">
+        <div className="flex items-center gap-3 rounded-m3-xl bg-surface-low p-3 shadow-edge">
           {icon === null ? (
-            <span className="shape-cookie9 grid size-12 shrink-0 place-items-center bg-secondary-container font-semibold text-on-secondary-container">
+            <span className="shape-cookie9 grid size-12 shrink-0 place-items-center icon-tile font-semibold">
               {guild.name.slice(0, 2)}
             </span>
           ) : (

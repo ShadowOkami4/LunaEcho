@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "LunaEcho Dashboard",
 };
 
-export const viewport: Viewport = { themeColor: "#140c10" };
+export const viewport: Viewport = { themeColor: "#080506" };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   const session = await getActiveSession();
@@ -26,9 +26,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
-        {/* M3 small top app bar. */}
-        <header className="sticky top-0 z-40 border-b border-outline/60 bg-background/80 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        {/* M3 small top app bar, as a floating glass pill. */}
+        <header className="app-bar sticky top-3.5 z-40 mx-auto mt-3.5 w-[min(80rem,calc(100%-1.5rem))] rounded-full">
+          <div className="flex h-15 items-center justify-between gap-4 px-2 py-1.5">
             <Link
               href={session === undefined ? "/" : "/servers"}
               className="flex items-center gap-3 rounded-full py-1 pr-3"
@@ -36,10 +36,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               <span className="shape-cookie12 grid size-10 place-items-center bg-surface-high">
                 <Image src="/lunaecho-logo.png" alt="" width={30} height={25} priority />
               </span>
-              <span className="text-lg font-semibold tracking-tight">
+              <span className="display text-2xl">
                 Luna<span className="text-tertiary">Echo</span>
               </span>
-              <span className="hidden rounded-m3-sm border border-outline px-2 py-0.5 text-xs font-medium text-muted sm:inline">
+              <span className="hidden rounded-full bg-on-surface/6 px-2.5 py-0.5 text-xs font-medium text-muted sm:inline">
                 Dashboard
               </span>
             </Link>
@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
 
-        <footer className="border-t border-outline/60">
+        <footer className="border-t border-white/6">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-faint sm:px-6">
             <span>© 2026 ShadowOkami · LunaEcho is open source under AGPL-3.0</span>
             <nav aria-label="Legal" className="flex gap-5">

@@ -32,7 +32,7 @@ export default async function HomePage({
   const { error } = await searchParams;
 
   return (
-    <section className="mx-auto grid max-w-5xl overflow-hidden rounded-m3-xxl border border-outline/50 bg-surface-low lg:grid-cols-2">
+    <section className="mx-auto grid max-w-5xl overflow-hidden rounded-m3-xxl shadow-edge bg-surface-low lg:grid-cols-2">
       {/* Brand panel with the product page's two-colour glow behind the logo. */}
       <div className="relative grid min-h-72 place-items-center overflow-hidden bg-surface p-10">
         <div
@@ -81,7 +81,7 @@ export default async function HomePage({
         <ul className="flex flex-col gap-4 border-t border-outline/60 pt-6">
           {features.map((feature) => (
             <li key={feature.title} className="flex gap-4">
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-on-secondary-container">
+              <span className="shape-cookie9 icon-tile grid size-10 shrink-0 place-items-center">
                 <Icon name={feature.icon} className="size-5" />
               </span>
               <div>

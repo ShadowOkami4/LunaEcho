@@ -5,7 +5,7 @@ import { Icon } from "@/components/icon";
 export default function NotFound() {
   return (
     <section className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <span className="shape-cookie12 grid size-20 place-items-center bg-secondary-container text-on-secondary-container">
+      <span className="shape-cookie12 icon-tile grid size-20 place-items-center">
         <Icon name="info" className="size-9" />
       </span>
       <h1 className="headline-large">Page not available</h1>

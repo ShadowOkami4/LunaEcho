@@ -89,7 +89,7 @@ function Step({
   return (
     <section className="flex gap-4">
       <div className="flex flex-col items-center">
-        <span className="shape-cookie9 grid size-10 shrink-0 place-items-center bg-secondary-container text-on-secondary-container">
+        <span className="shape-cookie9 grid size-10 shrink-0 place-items-center icon-tile">
           <Icon name={icon} className="size-5" />
         </span>
         <span aria-hidden className="mt-2 w-px flex-1 bg-outline/60" />

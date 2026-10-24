@@ -45,11 +45,11 @@ export default async function ModulesPage({
             <span className="text-xl font-medium opacity-70"> of {states.length}</span>
           </dd>
         </div>
-        <div className="rounded-m3-xl border border-outline/50 bg-surface-low p-5">
+        <div className="rounded-m3-xl shadow-edge bg-surface-low p-5">
           <dt className="text-sm font-medium text-muted">Plan</dt>
           <dd className="headline-large mt-1">{planNames[entitlement.planId]}</dd>
         </div>
-        <div className="rounded-m3-xl border border-outline/50 bg-surface-low p-5">
+        <div className="rounded-m3-xl shadow-edge bg-surface-low p-5">
           <dt className="text-sm font-medium text-muted">Switching off</dt>
           <dd className="mt-2 text-sm text-muted">
             A module that is off keeps all its settings, so it continues where it left off.
@@ -66,14 +66,12 @@ export default async function ModulesPage({
             <li
               key={module.id}
               style={delay(Math.min(index, 11) * 30)}
-              className="m3-card m3-card-interactive rise flex flex-col gap-4 border border-outline/50 bg-surface-low p-5"
+              className="m3-card m3-card-interactive rise flex flex-col gap-4 shadow-edge bg-surface-low p-5"
             >
               <div className="flex items-start gap-4">
                 <span
                   className={`shape-cookie9 grid size-12 shrink-0 place-items-center transition-colors ${
-                    enabled
-                      ? "bg-primary-container text-on-primary-container"
-                      : "bg-surface-highest text-muted"
+                    enabled ? "icon-tile" : "icon-tile-off"
                   }`}
                 >
                   <Icon name={moduleIcons[module.id] ?? "apps"} className="size-6" />

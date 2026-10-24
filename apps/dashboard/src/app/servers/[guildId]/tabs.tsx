@@ -67,7 +67,7 @@ export function Navigation({ guildId }: Readonly<{ guildId: string }>) {
               className={`m3-button inline-flex h-9 shrink-0 items-center gap-2 px-3.5 text-sm font-medium ${
                 selected
                   ? "bg-secondary-container text-on-secondary-container"
-                  : "border border-outline text-muted"
+                  : "bg-surface-low text-muted shadow-edge"
               }`}
             >
               <Icon name={section.icon} className="size-[18px]" />
@@ -114,7 +114,7 @@ export function ModuleFrame({
       {current !== undefined && (
         <header
           key={current.href}
-          className="morph-trigger page-enter relative flex flex-wrap items-center gap-5 overflow-hidden rounded-m3-xxl bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-primary-container)_16%,var(--color-surface-low)),var(--color-surface-low)_60%,color-mix(in_srgb,var(--color-tertiary)_10%,var(--color-surface-low)))] p-5 sm:p-6"
+          className="morph-trigger page-enter relative flex flex-wrap items-center gap-5 overflow-hidden rounded-m3-xxl shadow-edge bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-primary-container)_16%,var(--color-surface-low)),var(--color-surface-low)_60%,color-mix(in_srgb,var(--color-tertiary)_10%,var(--color-surface-low)))] p-5 sm:p-6"
         >
           <div
             aria-hidden
@@ -124,9 +124,7 @@ export function ModuleFrame({
           />
           <span
             className={`shape-cookie9 relative grid size-16 shrink-0 place-items-center transition-colors ${
-              off
-                ? "bg-surface-highest text-muted"
-                : "bg-primary-container text-on-primary-container"
+              off ? "icon-tile-off" : "icon-tile"
             }`}
           >
             <Icon name={current.icon} className="size-8" />
