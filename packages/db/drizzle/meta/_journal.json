@@ -92,6 +92,13 @@
       "when": 1791051844488,
       "tag": "0012_custom_bots",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793865497218,
+      "tag": "0013_custom_bot_partner",
+      "breakpoints": true
     }
   ]
 }

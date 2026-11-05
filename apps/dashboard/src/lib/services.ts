@@ -5,6 +5,7 @@ import { connectDatabase, type DatabaseConnection } from "@lunaecho/db";
 import {
   AutomationService,
   BotTaskQueue,
+  CustomBotService,
   DrizzleModerationCaseRepository,
   DrizzleModerationSettingsRepository,
   DrizzleModuleSettingsRepository,
@@ -19,6 +20,7 @@ import {
   RoleMenuService,
   SocialFeedService,
   TicketService,
+  TokenVault,
   WelcomeCardService,
   WelcomeSettingsService,
 } from "@lunaecho/modules";
@@ -28,6 +30,8 @@ import { env } from "./env";
 
 export type DashboardServices = Readonly<{
   automation: AutomationService;
+  /** Undefined where no token key is configured, so Custom bots cannot be added here. */
+  customBots: CustomBotService | undefined;
   entitlements: EntitlementService;
   levels: LevelService;
   logs: LogSettingsService;
@@ -59,10 +63,15 @@ async function createServices(): Promise<DashboardServices> {
     runMigrations: false,
   });
   const db = database.db;
+  const tokenKeyFile = env().CUSTOM_BOT_TOKEN_KEY_FILE;
 
   // Pages call invalidate() before reading, so they show what the bot stored a moment ago too.
   return {
     automation: new AutomationService(db),
+    customBots:
+      tokenKeyFile === undefined
+        ? undefined
+        : new CustomBotService(db, TokenVault.fromKeyFile(tokenKeyFile)),
     entitlements: new EntitlementService(createRuntimeEntitlementProvider(env().LUNA_RUNTIME_MODE)),
     levels: new LevelService(db),
     logs: new LogSettingsService(db),

@@ -284,5 +284,6 @@ export {
   type CustomBot,
   type CustomBotDeployment,
   type CustomBotDesiredState,
+  type CustomBotGrant,
   type CustomBotStatus,
 } from "./platform/custom-bot-service.js";

@@ -101,8 +101,17 @@ describe("CustomBotService", () => {
     await service.create("alice", token, inspection("app-1"));
 
     await expect(service.listGrants()).resolves.toEqual([
-      { note: "beta tester", slots: 2, used: 1, userId: "alice" },
+      { note: "beta tester", partner: false, slots: 2, used: 1, userId: "alice" },
     ]);
+  });
+
+  it("reports a user's grant with its Partner flag and the slots in use", async () => {
+    await expect(service.grantFor("alice")).resolves.toEqual({ partner: false, slots: 0, used: 0 });
+
+    await service.grant("alice", 2, "operator", "own server", true);
+    await service.create("alice", token, inspection("app-1"));
+
+    await expect(service.grantFor("alice")).resolves.toEqual({ partner: true, slots: 2, used: 1 });
   });
 });
 

@@ -1,4 +1,12 @@
-import { index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 const timestamptz = (name: string) => timestamp(name, { mode: "date", withTimezone: true });
 
@@ -10,6 +18,8 @@ export const customBotGrants = pgTable("custom_bot_grants", {
   userId: text("user_id").primaryKey(),
   slots: integer("slots").notNull(),
   note: text("note"),
+  /** A partner grant is free and never billed, for example for the operator's own servers. */
+  partner: boolean("partner").notNull().default(false),
   grantedBy: text("granted_by").notNull(),
   updatedAt: timestamptz("updated_at").notNull(),
 });

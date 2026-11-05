@@ -13,6 +13,11 @@ const environmentSchema = z.object({
   DISCORD_APPLICATION_ID: z.string().regex(/^\d{17,20}$/, "must be a Discord snowflake"),
   DISCORD_CLIENT_SECRET: z.string().min(1, "is required for the Discord login"),
   DISCORD_TOKEN: z.string().min(1, "is required"),
+  /**
+   * The key file that seals Custom bot tokens; the same file the orchestrator reads. Without it
+   * the Custom bots page explains that Custom is not set up on this dashboard.
+   */
+  CUSTOM_BOT_TOKEN_KEY_FILE: z.string().min(1).optional(),
   /** Must match the bot's mode, so both agree on each server's plan. */
   LUNA_RUNTIME_MODE: z.enum(runtimeModes).default("self-hosted"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

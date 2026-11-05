@@ -1,0 +1,1 @@
+ALTER TABLE "custom_bot_grants" ADD COLUMN "partner" boolean DEFAULT false NOT NULL;

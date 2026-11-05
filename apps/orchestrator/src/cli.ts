@@ -2,6 +2,7 @@
  * Operator commands, run inside the orchestrator container:
  *
  *   node dist/cli.js grant <discord-user-id> <slots> [note…]   allow a user that many Custom bots
+ *   node dist/cli.js partner <discord-user-id> <slots> [note…] the same as a free Partner grant
  *   node dist/cli.js grants                                    list grants and their use
  *   node dist/cli.js bots                                      list Custom bots and their status
  *   node dist/cli.js add <discord-user-id> < token-file        register a bot for a customer
@@ -38,20 +39,23 @@ const bots = new CustomBotService(
 
 try {
   switch (command) {
-    case "grant": {
+    case "grant":
+    case "partner": {
       const [userId, slots, ...note] = args;
 
       if (userId === undefined || !/^\d{17,20}$/.test(userId) || slots === undefined) {
-        throw new Error("Usage: grant <discord-user-id> <slots> [note…]");
+        throw new Error(`Usage: ${command} <discord-user-id> <slots> [note…]`);
       }
 
+      const partner = command === "partner";
       await bots.grant(
         userId,
         Number(slots),
         "operator",
         note.length === 0 ? null : note.join(" "),
+        partner,
       );
-      console.log(`${userId} may now run ${slots} Custom bot(s).`);
+      console.log(`${userId} may now run ${slots} ${partner ? "Partner " : ""}Custom bot(s).`);
       break;
     }
     case "grants":
@@ -103,7 +107,7 @@ try {
     }
     default:
       throw new Error(
-        "Commands: grant <user-id> <slots> [note…] | grants | bots | add <user-id> | remove <bot-id>",
+        "Commands: grant <user-id> <slots> [note…] | partner <user-id> <slots> [note…] | grants | bots | add <user-id> | remove <bot-id>",
       );
   }
 } finally {

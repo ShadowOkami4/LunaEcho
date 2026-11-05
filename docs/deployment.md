@@ -65,5 +65,19 @@ by setting `LUNAECHO_VERSION` in `.env`.
 
 ## Custom
 
-Not deployed yet. Each Custom customer will get their own bot process with their own token and
-database, sharing one Lavalink node, so one customer's data and limits never touch another's.
+Each Custom customer gets their own bot process with their own token and database, sharing one
+Lavalink node, so one customer's data and limits never touch another's. `deploy/custom/` runs the
+Custom database server, Lavalink, and the orchestrator from `~/lunaecho-custom`; the token key is
+`~/lunaecho-platform/token.key` (owner uid 1000, mode 400), mounted into the orchestrator and the
+Cloud dashboard.
+
+Customers add, start, stop, and remove their bots on the dashboard's **Custom bots** page
+(`/bots`). Until billing exists, an operator grants the slots inside the orchestrator container:
+
+```bash
+docker compose exec orchestrator node dist/cli.js grant <discord-user-id> <slots> [note…]
+docker compose exec orchestrator node dist/cli.js partner <discord-user-id> <slots> [note…]
+```
+
+A **Partner** grant is free and never billed, for example for the operator's own servers. It is
+not offered anywhere in pricing; the dashboard only shows a Partner badge to its holder.

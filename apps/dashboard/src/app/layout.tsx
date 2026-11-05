@@ -45,6 +45,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             </Link>
             {session !== undefined && (
               <div className="flex items-center gap-2">
+                <Link
+                  href="/bots"
+                  title="Custom bots"
+                  className="m3-button inline-flex h-10 items-center gap-2 px-3 text-sm font-medium text-muted hover:bg-surface-high hover:text-on-surface sm:mr-2"
+                >
+                  <Icon name="smartDisplay" className="size-5" />
+                  <span className="hidden sm:inline">Custom bots</span>
+                </Link>
                 <span className="hidden items-center gap-2.5 sm:flex">
                   {avatar !== null && (
                     <Image

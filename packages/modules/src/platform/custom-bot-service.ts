@@ -41,6 +41,9 @@ export class CustomBotError extends Error {
 
 export const maximumCustomBotSlots = 10;
 
+/** A user's Custom allowance. Partner grants are free and never shown in pricing. */
+export type CustomBotGrant = Readonly<{ partner: boolean; slots: number; used: number }>;
+
 function toBot(row: typeof customBots.$inferSelect): CustomBot {
   return {
     applicationId: row.applicationId,
@@ -77,17 +80,37 @@ export class CustomBotService {
     return row?.slots ?? 0;
   }
 
+  /** The user's slots and how many are taken; no grant means no slots. */
+  public async grantFor(userId: string): Promise<CustomBotGrant> {
+    const [[grant], [owned]] = await Promise.all([
+      this.database
+        .select({ partner: customBotGrants.partner, slots: customBotGrants.slots })
+        .from(customBotGrants)
+        .where(eq(customBotGrants.userId, userId)),
+      this.database
+        .select({ value: count() })
+        .from(customBots)
+        .where(and(eq(customBots.ownerUserId, userId), ne(customBots.desiredState, "deleted"))),
+    ]);
+    return {
+      partner: grant?.partner ?? false,
+      slots: grant?.slots ?? 0,
+      used: owned?.value ?? 0,
+    };
+  }
+
   public async grant(
     userId: string,
     slots: number,
     actorId: string,
     note: string | null = null,
+    partner = false,
   ): Promise<void> {
     if (!Number.isInteger(slots) || slots < 0 || slots > maximumCustomBotSlots) {
       throw new RangeError(`Slots must be between 0 and ${maximumCustomBotSlots}.`);
     }
 
-    const values = { grantedBy: actorId, note, slots, updatedAt: this.clock() };
+    const values = { grantedBy: actorId, note, partner, slots, updatedAt: this.clock() };
     await this.database
       .insert(customBotGrants)
       .values({ ...values, userId })
@@ -95,7 +118,13 @@ export class CustomBotService {
   }
 
   public async listGrants(): Promise<
-    readonly Readonly<{ note: string | null; slots: number; used: number; userId: string }>[]
+    readonly Readonly<{
+      note: string | null;
+      partner: boolean;
+      slots: number;
+      used: number;
+      userId: string;
+    }>[]
   > {
     const grants = await this.database
       .select()
@@ -109,6 +138,7 @@ export class CustomBotService {
     const usedBy = new Map(used.map((row) => [row.ownerUserId, row.value]));
     return grants.map((grant) => ({
       note: grant.note,
+      partner: grant.partner,
       slots: grant.slots,
       used: usedBy.get(grant.userId) ?? 0,
       userId: grant.userId,

@@ -1,0 +1,276 @@
+import type { CustomBot } from "@lunaecho/modules";
+import Image from "next/image";
+
+import { AutoRefresh } from "@/components/auto-refresh";
+import { Icon } from "@/components/icon";
+import { Loader } from "@/components/loader";
+import { requireSession } from "@/lib/access";
+import { botAvatarUrl, customBotInviteUrl } from "@/lib/discord";
+import { services } from "@/lib/services";
+
+import {
+  Button,
+  buttonClass,
+  Card,
+  Chip,
+  Field,
+  inputClass,
+  Notice,
+} from "../servers/[guildId]/ui";
+import {
+  addCustomBot,
+  removeCustomBot,
+  replaceCustomBotToken,
+  setCustomBotRunning,
+} from "./actions";
+
+export const dynamic = "force-dynamic";
+
+/** What the bot is doing, from what the owner asked for and what the orchestrator reports. */
+function BotStatus({ bot }: Readonly<{ bot: CustomBot }>) {
+  if (bot.desiredState === "stopped") {
+    return bot.status === "stopped" ? <Chip>Stopped</Chip> : <Chip>Stopping</Chip>;
+  }
+
+  switch (bot.status) {
+    case "running":
+      return (
+        <Chip tone="success" icon="checkCircle">
+          Running
+        </Chip>
+      );
+    case "failed":
+      return (
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-m3-sm bg-danger-container px-2.5 text-xs font-medium text-on-danger-container">
+          <Icon name="error" className="size-4" />
+          Failed
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-m3-sm border border-outline px-2.5 text-xs font-medium text-muted">
+          <Loader className="size-3.5 text-primary" label="Starting" />
+          Starting
+        </span>
+      );
+  }
+}
+
+const tokenField = {
+  autoComplete: "off",
+  className: `${inputClass} font-mono`,
+  name: "token",
+  placeholder: "Paste the bot token",
+  required: true,
+  spellCheck: false,
+  type: "password",
+} as const;
+
+export default async function CustomBotsPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ notice?: string }> }>) {
+  const session = await requireSession();
+  const bots = (await services()).customBots;
+  const [grant, owned] =
+    bots === undefined
+      ? [undefined, []]
+      : await Promise.all([bots.grantFor(session.user.id), bots.listOwned(session.user.id)]);
+  const changing = owned.some(
+    (bot) =>
+      (bot.desiredState === "running" && bot.status !== "running" && bot.status !== "failed") ||
+      (bot.desiredState === "stopped" && bot.status !== "stopped"),
+  );
+  const free = grant === undefined ? 0 : Math.max(grant.slots - grant.used, 0);
+
+  return (
+    <section className="flex flex-col gap-8 rounded-m3-xl-inc bg-surface-lowest p-5 shadow-edge sm:p-8">
+      {changing && <AutoRefresh />}
+
+      <header className="flex items-start gap-4">
+        <span className="shape-cookie9 icon-tile-on grid size-14 shrink-0 place-items-center">
+          <Icon name="smartDisplay" className="size-7" />
+        </span>
+        <div className="min-w-0 flex-1 pt-1">
+          <h1 className="headline-large">Custom bots</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            LunaEcho under your own bot&apos;s name and avatar, with every module and its own
+            database.
+          </p>
+        </div>
+      </header>
+
+      <Notice code={(await searchParams).notice} />
+
+      {grant === undefined ? (
+        <p className="flex items-center gap-3 rounded-m3-lg bg-surface px-4 py-3 text-sm text-muted">
+          <Icon name="info" className="size-5 shrink-0" />
+          Custom bots are not set up on this dashboard.
+        </p>
+      ) : grant.slots === 0 && owned.length === 0 ? (
+        <Card
+          icon="stars"
+          title="Custom is not on your account yet"
+          description="With Custom, LunaEcho runs as your own bot: your name, your avatar, Music, Automation, and Social Notifications included."
+        >
+          <a
+            href="https://shadowokami.com/LunaEcho"
+            className={`${buttonClass("outlined")} self-start`}
+          >
+            See the plans
+            <Icon name="openInNew" className="-mr-1 size-[18px]" />
+          </a>
+        </Card>
+      ) : (
+        <>
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted">
+            <span>
+              <span className="display text-3xl text-primary">{grant.used}</span> of {grant.slots}{" "}
+              {grant.slots === 1 ? "slot" : "slots"} in use
+            </span>
+            {grant.partner && <Chip tone="tertiary">Partner</Chip>}
+          </p>
+
+          {owned.length > 0 && (
+            <ul className="flex flex-col">
+              {owned.map((bot) => {
+                const avatar = botAvatarUrl(bot);
+                const running = bot.desiredState === "running";
+
+                return (
+                  <li
+                    key={bot.id}
+                    className="rise flex flex-col gap-4 border-b border-white/6 py-5 first:pt-0 last:border-0"
+                  >
+                    <div className="flex flex-wrap items-center gap-4">
+                      {avatar === null ? (
+                        <span className="shape-cookie9 icon-tile grid size-12 shrink-0 place-items-center font-semibold">
+                          {bot.name.slice(0, 2)}
+                        </span>
+                      ) : (
+                        <Image
+                          src={avatar}
+                          alt=""
+                          width={48}
+                          height={48}
+                          className="shape-cookie9 size-12 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-40 flex-1">
+                        <p className="title-medium truncate">{bot.name}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <BotStatus bot={bot} />
+                          {bot.status === "failed" && bot.statusMessage !== null && (
+                            <span className="text-sm text-muted">{bot.statusMessage}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={customBotInviteUrl(bot.applicationId)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={buttonClass("outlined")}
+                        >
+                          <Icon name="groupAdd" className="-ml-1 size-[18px]" />
+                          Invite
+                        </a>
+                        <form action={setCustomBotRunning}>
+                          <input type="hidden" name="botId" value={bot.id} />
+                          <input type="hidden" name="running" value={String(!running)} />
+                          <Button tone="neutral" icon={running ? "powerSettingsNew" : "bolt"}>
+                            {running ? "Stop" : "Start"}
+                          </Button>
+                        </form>
+                      </div>
+                    </div>
+
+                    <details className="group">
+                      <summary className="inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-muted hover:text-on-surface">
+                        Token and removal
+                        <Icon name="expandMore" className="m3-chevron size-5" />
+                      </summary>
+                      <div className="grid gap-6 pt-4 md:grid-cols-2">
+                        <form action={replaceCustomBotToken} className="flex flex-col gap-3">
+                          <input type="hidden" name="botId" value={bot.id} />
+                          <Field
+                            label="New token"
+                            hint="After a reset on Discord. It must belong to the same application."
+                          >
+                            <input {...tokenField} />
+                          </Field>
+                          <div>
+                            <Button tone="neutral" icon="edit">
+                              Replace token
+                            </Button>
+                          </div>
+                        </form>
+                        <form action={removeCustomBot} className="flex flex-col gap-3">
+                          <input type="hidden" name="botId" value={bot.id} />
+                          <p className="text-sm text-muted">
+                            Removing stops the bot and deletes its database with every server&apos;s
+                            settings. This cannot be undone.
+                          </p>
+                          <label className="flex items-center gap-3 text-sm">
+                            <input type="checkbox" name="confirm" required />
+                            Delete {bot.name} and its settings
+                          </label>
+                          <div>
+                            <Button tone="remove" icon="delete">
+                              Remove {bot.name}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {free > 0 && (
+            <Card
+              icon="add"
+              title="Add a bot"
+              description={`${free} free ${free === 1 ? "slot" : "slots"}. LunaEcho checks the token with Discord before it stores it.`}
+            >
+              <ol className="flex flex-col gap-2 text-sm text-muted">
+                <li>
+                  1. Create an application in the{" "}
+                  <a
+                    href="https://discord.com/developers/applications"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Discord Developer Portal
+                  </a>{" "}
+                  and give it a name and avatar.
+                </li>
+                <li>
+                  2. On its <span className="text-on-surface">Bot</span> page, turn on the Server
+                  Members and Message Content intents.
+                </li>
+                <li>
+                  3. Press <span className="text-on-surface">Reset Token</span>, copy the token, and
+                  paste it here. Never share it anywhere else.
+                </li>
+              </ol>
+              <form action={addCustomBot} className="flex flex-col gap-3">
+                <Field
+                  label="Bot token"
+                  hint="Stored encrypted; only your bot's own container can read it."
+                >
+                  <input {...tokenField} />
+                </Field>
+                <div>
+                  <Button icon="add">Add bot</Button>
+                </div>
+              </form>
+            </Card>
+          )}
+        </>
+      )}
+    </section>
+  );
+}

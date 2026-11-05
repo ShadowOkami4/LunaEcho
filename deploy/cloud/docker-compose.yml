@@ -49,6 +49,9 @@ services:
       DATABASE_URL: postgres://lunaecho:${POSTGRES_PASSWORD}@postgres:5432/lunaecho
       LUNA_RUNTIME_MODE: cloud-shared
       NODE_ENV: production
+      CUSTOM_BOT_TOKEN_KEY_FILE: /run/secrets/token-key
+    secrets:
+      - token-key
     ports:
       - "127.0.0.1:3100:3000"
     depends_on:
@@ -61,3 +64,8 @@ services:
 
 volumes:
   postgres-data:
+
+secrets:
+  # Seals Custom bot tokens; the same file the Custom orchestrator reads (owner uid 1000, mode 400).
+  token-key:
+    file: ../lunaecho-platform/token.key

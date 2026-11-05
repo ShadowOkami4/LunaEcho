@@ -218,10 +218,28 @@ export function inviteUrl(guildId: string): string {
   return `https://discord.com/oauth2/authorize?${parameters.toString()}`;
 }
 
+/** Adds a customer's own bot to any of their servers, with the same permissions as LunaEcho. */
+export function customBotInviteUrl(applicationId: string): string {
+  const parameters = new URLSearchParams({
+    client_id: applicationId,
+    permissions: botPermissions.toString(),
+    scope: "bot applications.commands",
+  });
+  return `https://discord.com/oauth2/authorize?${parameters.toString()}`;
+}
+
 export function guildIconUrl(guild: Readonly<{ icon: string | null; id: string }>): string | null {
   return guild.icon === null
     ? null
     : `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png?size=96`;
+}
+
+export function botAvatarUrl(
+  bot: Readonly<{ avatarHash: string | null; botUserId: string }>,
+): string | null {
+  return bot.avatarHash === null
+    ? null
+    : `https://cdn.discordapp.com/avatars/${bot.botUserId}/${bot.avatarHash}.png?size=96`;
 }
 
 export function userAvatarUrl(

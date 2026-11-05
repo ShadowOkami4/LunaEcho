@@ -11,6 +11,21 @@ export const errorNoticeCookie = "lunaecho-notice";
 
 const notices: Readonly<Record<string, Readonly<{ text: string; tone: "danger" | "success" }>>> = {
   "already-exists": { text: "That word is already on the list.", tone: "danger" },
+  "bot-added": {
+    text: "Added. LunaEcho starts your bot within a minute; invite it to your servers below.",
+    tone: "success",
+  },
+  "bot-intents": {
+    text: "Added. Turn on the Server Members and Message Content intents on Discord's Bot page, or welcome messages, AutoMod, and logs stay silent.",
+    tone: "success",
+  },
+  "bot-removed": {
+    text: "Removed. Its container and database are deleted shortly.",
+    tone: "success",
+  },
+  "bot-started": { text: "Starting. This takes up to a minute.", tone: "success" },
+  "bot-stopped": { text: "Stopping. Its settings are kept.", tone: "success" },
+  "bot-token": { text: "Token replaced. The bot restarts with it.", tone: "success" },
   invalid: { text: "That value is not valid for this server.", tone: "danger" },
   "invalid-word": {
     text: "Banned words need 2 to 64 visible characters and no control characters.",
