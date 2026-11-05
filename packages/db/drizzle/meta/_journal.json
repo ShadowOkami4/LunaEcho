@@ -99,6 +99,13 @@
       "when": 1793865497218,
       "tag": "0013_custom_bot_partner",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793867040404,
+      "tag": "0014_custom_bot_usage",
+      "breakpoints": true
     }
   ]
 }

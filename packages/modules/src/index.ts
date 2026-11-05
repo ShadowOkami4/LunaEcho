@@ -281,9 +281,13 @@ export {
   CustomBotError,
   CustomBotService,
   maximumCustomBotSlots,
+  usageWindowDays,
+  utcDay,
   type CustomBot,
   type CustomBotDeployment,
   type CustomBotDesiredState,
   type CustomBotGrant,
+  type CustomBotSize,
+  type CustomBotUsageReading,
   type CustomBotStatus,
 } from "./platform/custom-bot-service.js";

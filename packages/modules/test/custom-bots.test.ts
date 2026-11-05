@@ -10,6 +10,7 @@ import {
   CustomBotService,
   inspectBotToken,
   TokenVault,
+  utcDay,
   type BotTokenInspection,
 } from "../src/index.js";
 
@@ -126,6 +127,38 @@ describe("CustomBotService", () => {
     await expect(service.getOwned("alice", newer.id)).resolves.toMatchObject({
       desiredState: "running",
     });
+  });
+
+  it("averages a bot's members over 30 days, counting days without a reading as zero", async () => {
+    const now = new Date("2026-11-30T12:00:00Z");
+    const clocked = new CustomBotService(connection.db, new TokenVault(randomBytes(32)), () => now);
+    const reading = (botId: string, offset: number, memberCount: number) =>
+      clocked.recordUsage({
+        botId,
+        day: utcDay(now, -offset),
+        guildCount: 2,
+        memberCount,
+        ownerUserId: "alice",
+      });
+
+    // Half the month at 2,000 members, a raid day at 50,000, and one reading outside the window.
+    for (let offset = 0; offset < 15; offset += 1) {
+      await reading("bot-a", offset, 2_000);
+    }
+    await reading("bot-b", 3, 50_000);
+    await reading("bot-b", 30, 90_000);
+    await reading("bot-a", 0, 2_100);
+
+    const sizes = await clocked.sizesFor("alice");
+
+    expect(sizes.bots.get("bot-a")).toEqual({
+      averageMembers: 1_004,
+      latestGuilds: 2,
+      latestMembers: 2_100,
+    });
+    expect(sizes.bots.get("bot-b")?.averageMembers).toBe(1_667);
+    expect(sizes.totalAverageMembers).toBe(2_670);
+    await expect(clocked.measuredOn(utcDay(now))).resolves.toEqual(new Set(["bot-a"]));
   });
 
   it("reports a user's grant with its Partner flag and the slots in use", async () => {

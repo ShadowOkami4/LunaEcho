@@ -73,10 +73,15 @@ export default async function CustomBotsPage({
 }: Readonly<{ searchParams: Promise<{ notice?: string }> }>) {
   const session = await requireSession();
   const bots = (await services()).customBots;
-  const [grant, owned] =
+  const [grant, owned, sizes] =
     bots === undefined
-      ? [undefined, []]
-      : await Promise.all([bots.grantFor(session.user.id), bots.listOwned(session.user.id)]);
+      ? [undefined, [], undefined]
+      : await Promise.all([
+          bots.grantFor(session.user.id),
+          bots.listOwned(session.user.id),
+          bots.sizesFor(session.user.id),
+        ]);
+  const number = new Intl.NumberFormat("en");
   const changing = owned.some(
     (bot) =>
       (bot.desiredState === "running" && bot.status !== "running" && bot.status !== "failed") ||
@@ -140,6 +145,17 @@ export default async function CustomBotsPage({
               {grant.slots === 1 ? "slot" : "slots"} in use
             </span>
             {grant.partner && <Chip tone="tertiary">Partner</Chip>}
+            {!grant.partner && sizes.totalAverageMembers > 0 && (
+              <span>
+                · billed size {number.format(sizes.totalAverageMembers)} members (30-day average) ·{" "}
+                <a
+                  href="https://shadowokami.com/LunaEcho#pricing"
+                  className="text-primary hover:underline"
+                >
+                  How pricing works
+                </a>
+              </span>
+            )}
             {billing && !grant.partner && grant.slots > 0 && (
               <form action={openBilling} className="ml-auto">
                 <input type="hidden" name="action" value="portal" />
@@ -155,6 +171,7 @@ export default async function CustomBotsPage({
               {owned.map((bot) => {
                 const avatar = botAvatarUrl(bot);
                 const running = bot.desiredState === "running";
+                const size = sizes.bots.get(bot.id);
 
                 return (
                   <li
@@ -183,6 +200,13 @@ export default async function CustomBotsPage({
                             <span className="text-sm text-muted">{bot.statusMessage}</span>
                           )}
                         </div>
+                        {size !== undefined && (
+                          <p className="mt-1 text-xs text-faint">
+                            {number.format(size.latestMembers)} members in {size.latestGuilds}{" "}
+                            {size.latestGuilds === 1 ? "server" : "servers"} today · 30-day average{" "}
+                            {number.format(size.averageMembers)}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <a

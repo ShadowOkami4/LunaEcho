@@ -1,8 +1,10 @@
 import {
   boolean,
+  date,
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -53,5 +55,26 @@ export const customBots = pgTable(
     uniqueIndex("custom_bots_application_idx").on(table.applicationId),
     uniqueIndex("custom_bots_database_idx").on(table.databaseName),
     index("custom_bots_owner_idx").on(table.ownerUserId),
+  ],
+);
+
+/**
+ * One reading a day per running Custom bot: how many servers it is in and their members added
+ * up, as Discord reports them. Billing uses the 30-day average, so short spikes barely count and
+ * days a bot was stopped count as zero. Rows keep the owner, so they outlive a removed bot.
+ */
+export const customBotUsage = pgTable(
+  "custom_bot_usage",
+  {
+    botId: text("bot_id").notNull(),
+    ownerUserId: text("owner_user_id").notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    guildCount: integer("guild_count").notNull(),
+    memberCount: integer("member_count").notNull(),
+    measuredAt: timestamptz("measured_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.botId, table.day] }),
+    index("custom_bot_usage_owner_day_idx").on(table.ownerUserId, table.day),
   ],
 );

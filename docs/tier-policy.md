@@ -74,6 +74,18 @@ almost nothing; its real cost is Discord API calls and channel slots, which the 
 already bound. Music's cost sits in Lavalink, which has not been measured yet, and Music is not
 part of the provisional Cloud plan.
 
+## Custom size readings
+
+Custom is paid per bot and by size. Once a UTC day the orchestrator asks Discord, with each
+running Custom bot's own token, for the servers the bot is in and their approximate member counts,
+and stores the sum in `custom_bot_usage`. A bot's size is the **30-day average** of those readings;
+days without a reading (the bot was stopped or not yet added) count as zero. Averaging keeps a raid
+or a short spike from changing the price. A member in two servers of the same bot counts twice:
+removing duplicates would need member lists, which LunaEcho does not collect for billing.
+
+The billing service turns these sizes into a price outside this repository (see Managed
+verification below); the dashboard shows each bot's latest reading and the owner's 30-day total.
+
 ## Managed verification
 
 Managed subscription verification is intentionally not implemented in the public repository. A

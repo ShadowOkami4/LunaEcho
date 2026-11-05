@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import type { Clock } from "@lunaecho/core";
-import { customBotGrants, customBots, type LunaDatabase } from "@lunaecho/db";
-import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { customBotGrants, customBots, customBotUsage, type LunaDatabase } from "@lunaecho/db";
+import { and, asc, count, desc, eq, gt, inArray, lte, ne, sql } from "drizzle-orm";
 
 import type { BotTokenInspection } from "./bot-token-inspection.js";
 import type { TokenVault } from "./token-vault.js";
@@ -40,6 +40,30 @@ export class CustomBotError extends Error {
 }
 
 export const maximumCustomBotSlots = 10;
+
+/** Billing averages a bot's size over this many days; days without a reading count as zero. */
+export const usageWindowDays = 30;
+
+export type CustomBotUsageReading = Readonly<{
+  botId: string;
+  /** The UTC day, YYYY-MM-DD. */
+  day: string;
+  guildCount: number;
+  memberCount: number;
+  ownerUserId: string;
+}>;
+
+export type CustomBotSize = Readonly<{
+  /** Members over the last 30 days, added up per day and divided by 30, rounded up. */
+  averageMembers: number;
+  latestGuilds: number;
+  latestMembers: number;
+}>;
+
+/** YYYY-MM-DD of the UTC day `offset` days from `date`. */
+export function utcDay(date: Date, offset = 0): string {
+  return new Date(date.getTime() + offset * 86_400_000).toISOString().slice(0, 10);
+}
 
 /** A user's Custom allowance. Partner grants are free and never shown in pricing. */
 export type CustomBotGrant = Readonly<{ partner: boolean; slots: number; used: number }>;
@@ -331,6 +355,72 @@ export class CustomBotService {
         .set({ desiredState, updatedAt: this.clock() })
         .where(eq(customBots.id, botId));
     });
+  }
+
+  // ─── Usage ───────────────────────────────────────────────────────────────
+
+  /** Sizes per bot and the owner's total, from the readings of the last 30 days. */
+  public async sizesFor(
+    ownerUserId: string,
+  ): Promise<Readonly<{ bots: ReadonlyMap<string, CustomBotSize>; totalAverageMembers: number }>> {
+    const today = utcDay(this.clock());
+    const rows = await this.database
+      .select()
+      .from(customBotUsage)
+      .where(
+        and(
+          eq(customBotUsage.ownerUserId, ownerUserId),
+          gt(customBotUsage.day, utcDay(this.clock(), -usageWindowDays)),
+          lte(customBotUsage.day, today),
+        ),
+      )
+      .orderBy(asc(customBotUsage.day));
+    const sums = new Map<string, { latest: (typeof rows)[number]; sum: number }>();
+
+    for (const row of rows) {
+      const entry = sums.get(row.botId);
+      sums.set(row.botId, { latest: row, sum: (entry?.sum ?? 0) + row.memberCount });
+    }
+
+    const bots = new Map(
+      [...sums].map(([botId, { latest, sum }]) => [
+        botId,
+        {
+          averageMembers: Math.ceil(sum / usageWindowDays),
+          latestGuilds: latest.guildCount,
+          latestMembers: latest.memberCount,
+        },
+      ]),
+    );
+    const total = Math.ceil(
+      [...sums.values()].reduce((all, entry) => all + entry.sum, 0) / usageWindowDays,
+    );
+    return { bots, totalAverageMembers: total };
+  }
+
+  /** Stores today's reading for a bot; a second reading the same day replaces the first. */
+  public async recordUsage(reading: CustomBotUsageReading): Promise<void> {
+    const values = { ...reading, measuredAt: this.clock() };
+    await this.database
+      .insert(customBotUsage)
+      .values(values)
+      .onConflictDoUpdate({
+        set: {
+          guildCount: values.guildCount,
+          measuredAt: values.measuredAt,
+          memberCount: values.memberCount,
+        },
+        target: [customBotUsage.botId, customBotUsage.day],
+      });
+  }
+
+  /** Bots that already have a reading for the given day. */
+  public async measuredOn(day: string): Promise<ReadonlySet<string>> {
+    const rows = await this.database
+      .select({ botId: customBotUsage.botId })
+      .from(customBotUsage)
+      .where(eq(customBotUsage.day, day));
+    return new Set(rows.map((row) => row.botId));
   }
 
   // ─── Orchestrator ────────────────────────────────────────────────────────
