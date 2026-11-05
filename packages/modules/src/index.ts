@@ -281,6 +281,7 @@ export {
   CustomBotError,
   CustomBotService,
   maximumCustomBotSlots,
+  usageRetentionDays,
   usageWindowDays,
   utcDay,
   type CustomBot,

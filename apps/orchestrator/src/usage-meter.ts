@@ -58,6 +58,7 @@ export class UsageMeter {
   ) {}
 
   public async measureOnce(): Promise<number> {
+    await this.bots.pruneUsage();
     const day = utcDay(this.clock());
     const done = await this.bots.measuredOn(day);
     const due = (await this.bots.listDeployments()).filter(

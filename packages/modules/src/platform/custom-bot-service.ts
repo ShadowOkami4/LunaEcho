@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Clock } from "@lunaecho/core";
 import { customBotGrants, customBots, customBotUsage, type LunaDatabase } from "@lunaecho/db";
-import { and, asc, count, desc, eq, gt, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne, sql } from "drizzle-orm";
 
 import type { BotTokenInspection } from "./bot-token-inspection.js";
 import type { TokenVault } from "./token-vault.js";
@@ -43,6 +43,9 @@ export const maximumCustomBotSlots = 10;
 
 /** Billing averages a bot's size over this many days; days without a reading count as zero. */
 export const usageWindowDays = 30;
+
+/** Readings are kept this long (the privacy policy promises it), then deleted. */
+export const usageRetentionDays = 90;
 
 export type CustomBotUsageReading = Readonly<{
   botId: string;
@@ -412,6 +415,15 @@ export class CustomBotService {
         },
         target: [customBotUsage.botId, customBotUsage.day],
       });
+  }
+
+  /** Deletes readings older than the retention period; returns how many went. */
+  public async pruneUsage(): Promise<number> {
+    const removed = await this.database
+      .delete(customBotUsage)
+      .where(lt(customBotUsage.day, utcDay(this.clock(), -usageRetentionDays)))
+      .returning({ botId: customBotUsage.botId });
+    return removed.length;
   }
 
   /** Bots that already have a reading for the given day. */

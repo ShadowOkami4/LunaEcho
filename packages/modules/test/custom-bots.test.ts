@@ -159,6 +159,10 @@ describe("CustomBotService", () => {
     expect(sizes.bots.get("bot-b")?.averageMembers).toBe(1_667);
     expect(sizes.totalAverageMembers).toBe(2_670);
     await expect(clocked.measuredOn(utcDay(now))).resolves.toEqual(new Set(["bot-a"]));
+
+    await reading("bot-b", 91, 1_000);
+    await expect(clocked.pruneUsage()).resolves.toBe(1);
+    await expect(clocked.measuredOn(utcDay(now, -30))).resolves.toEqual(new Set(["bot-b"]));
   });
 
   it("reports a user's grant with its Partner flag and the slots in use", async () => {
