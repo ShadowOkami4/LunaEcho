@@ -6,6 +6,12 @@ import { z } from "zod";
 loadNearestEnvFile(process.cwd());
 
 const environmentSchema = z.object({
+  /**
+   * The separately run billing service and the secret both share for signed handoffs. Without
+   * them the Custom bots page shows no purchase or billing buttons.
+   */
+  BILLING_HANDOFF_SECRET: z.string().min(32, "must contain at least 32 characters").optional(),
+  BILLING_URL: z.url().optional(),
   DASHBOARD_URL: z.url().default("http://localhost:3000"),
   DATABASE_URL: z
     .string({ error: "is required" })

@@ -11,6 +11,10 @@ export const errorNoticeCookie = "lunaecho-notice";
 
 const notices: Readonly<Record<string, Readonly<{ text: string; tone: "danger" | "success" }>>> = {
   "already-exists": { text: "That word is already on the list.", tone: "danger" },
+  "billing-done": {
+    text: "Thank you! Your Custom slots appear within a few seconds.",
+    tone: "success",
+  },
   "bot-added": {
     text: "Added. LunaEcho starts your bot within a minute; invite it to your servers below.",
     tone: "success",

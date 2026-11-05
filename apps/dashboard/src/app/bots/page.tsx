@@ -5,6 +5,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Icon } from "@/components/icon";
 import { Loader } from "@/components/loader";
 import { requireSession } from "@/lib/access";
+import { billingAvailable } from "@/lib/billing";
 import { botAvatarUrl, customBotInviteUrl } from "@/lib/discord";
 import { services } from "@/lib/services";
 
@@ -19,6 +20,7 @@ import {
 } from "../servers/[guildId]/ui";
 import {
   addCustomBot,
+  openBilling,
   removeCustomBot,
   replaceCustomBotToken,
   setCustomBotRunning,
@@ -81,6 +83,7 @@ export default async function CustomBotsPage({
       (bot.desiredState === "stopped" && bot.status !== "stopped"),
   );
   const free = grant === undefined ? 0 : Math.max(grant.slots - grant.used, 0);
+  const billing = billingAvailable();
 
   return (
     <section className="flex flex-col gap-8 rounded-m3-xl-inc bg-surface-lowest p-5 shadow-edge sm:p-8">
@@ -112,23 +115,40 @@ export default async function CustomBotsPage({
           title="Custom is not on your account yet"
           description="With Custom, LunaEcho runs as your own bot: your name, your avatar, Music, Automation, and Social Notifications included."
         >
-          <a
-            href="https://shadowokami.com/LunaEcho"
-            className={`${buttonClass("outlined")} self-start`}
-          >
-            See the plans
-            <Icon name="openInNew" className="-mr-1 size-[18px]" />
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {billing && (
+              <form action={openBilling}>
+                <input type="hidden" name="action" value="checkout" />
+                <Button icon="stars">Get Custom</Button>
+              </form>
+            )}
+            <a href="https://shadowokami.com/LunaEcho" className={buttonClass("outlined")}>
+              See the plans
+              <Icon name="openInNew" className="-mr-1 size-[18px]" />
+            </a>
+          </div>
+          <p className="text-xs text-faint">
+            Billed monthly per bot. You choose how many bots at checkout and can change or cancel
+            any time.
+          </p>
         </Card>
       ) : (
         <>
-          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
             <span>
               <span className="display text-3xl text-primary">{grant.used}</span> of {grant.slots}{" "}
               {grant.slots === 1 ? "slot" : "slots"} in use
             </span>
             {grant.partner && <Chip tone="tertiary">Partner</Chip>}
-          </p>
+            {billing && !grant.partner && grant.slots > 0 && (
+              <form action={openBilling} className="ml-auto">
+                <input type="hidden" name="action" value="portal" />
+                <Button tone="outlined" icon="tune">
+                  Manage billing
+                </Button>
+              </form>
+            )}
+          </div>
 
           {owned.length > 0 && (
             <ul className="flex flex-col">

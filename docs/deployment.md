@@ -79,5 +79,16 @@ docker compose exec orchestrator node dist/cli.js grant <discord-user-id> <slots
 docker compose exec orchestrator node dist/cli.js partner <discord-user-id> <slots> [note…]
 ```
 
+Paid slots come from a separately run, private billing service; the public repository contains
+no payment code. The dashboard hands a signed-in user over with a link signed by HMAC-SHA256
+(`apps/dashboard/src/lib/handoff.ts` documents the format), and the billing service sets the
+user's slots. When slots shrink, the user's newest bots stop and keep their settings. Set both
+values in the Cloud `.env` to show the **Get Custom** and **Manage billing** buttons:
+
+```bash
+BILLING_URL=https://lunaecho.shadowokami.com/billing/
+BILLING_HANDOFF_SECRET=   # openssl rand -base64 48, the same value as in the billing service
+```
+
 A **Partner** grant is free and never billed, for example for the operator's own servers. It is
 not offered anywhere in pricing; the dashboard only shows a Partner badge to its holder.

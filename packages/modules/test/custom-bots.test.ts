@@ -105,6 +105,29 @@ describe("CustomBotService", () => {
     ]);
   });
 
+  it("stops the newest bots when slots shrink, and starts them only into a free slot", async () => {
+    await service.grant("alice", 2, "billing");
+    const older = await service.create("alice", token, inspection("app-1"));
+    const newer = await service.create("alice", token, inspection("app-2"));
+
+    await service.grant("alice", 1, "billing");
+    await expect(service.getOwned("alice", older.id)).resolves.toMatchObject({
+      desiredState: "running",
+    });
+    await expect(service.getOwned("alice", newer.id)).resolves.toMatchObject({
+      desiredState: "stopped",
+    });
+    await expect(service.setDesiredState("alice", newer.id, "running")).rejects.toMatchObject({
+      reason: "no-slot",
+    });
+
+    await service.grant("alice", 2, "billing");
+    await service.setDesiredState("alice", newer.id, "running");
+    await expect(service.getOwned("alice", newer.id)).resolves.toMatchObject({
+      desiredState: "running",
+    });
+  });
+
   it("reports a user's grant with its Partner flag and the slots in use", async () => {
     await expect(service.grantFor("alice")).resolves.toEqual({ partner: false, slots: 0, used: 0 });
 

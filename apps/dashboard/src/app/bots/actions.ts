@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireSession } from "@/lib/access";
+import { billingRedirectUrl } from "@/lib/billing";
 import { services } from "@/lib/services";
 
 import { errorNoticeCookie } from "../servers/[guildId]/ui";
@@ -59,6 +60,19 @@ async function attempt(change: () => Promise<string>): Promise<never> {
 function token(formData: FormData): string {
   const value = formData.get("token");
   return typeof value === "string" ? value : "";
+}
+
+/** Opens checkout or the billing portal through the separately run billing service. */
+export async function openBilling(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const action = z.enum(["checkout", "portal"]).parse(formData.get("action"));
+  const url = billingRedirectUrl(session.user.id, action);
+
+  if (url === undefined) {
+    finish("invalid");
+  }
+
+  redirect(url);
 }
 
 export async function addCustomBot(formData: FormData): Promise<void> {

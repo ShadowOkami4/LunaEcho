@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Clock } from "@lunaecho/core";
 import { customBotGrants, customBots, type LunaDatabase } from "@lunaecho/db";
-import { and, asc, count, eq, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import type { BotTokenInspection } from "./bot-token-inspection.js";
 import type { TokenVault } from "./token-vault.js";
@@ -111,10 +111,36 @@ export class CustomBotService {
     }
 
     const values = { grantedBy: actorId, note, partner, slots, updatedAt: this.clock() };
-    await this.database
-      .insert(customBotGrants)
-      .values({ ...values, userId })
-      .onConflictDoUpdate({ set: values, target: customBotGrants.userId });
+    await this.database.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`custom-bots:${userId}`}))`,
+      );
+      await transaction
+        .insert(customBotGrants)
+        .values({ ...values, userId })
+        .onConflictDoUpdate({ set: values, target: customBotGrants.userId });
+
+      // Fewer slots than running bots, for example after a cancelled subscription: the newest
+      // bots stop. They keep their settings and start again once slots are back.
+      const running = await transaction
+        .select({ id: customBots.id })
+        .from(customBots)
+        .where(and(eq(customBots.ownerUserId, userId), eq(customBots.desiredState, "running")))
+        .orderBy(desc(customBots.createdAt));
+      const excess = running.slice(0, Math.max(running.length - slots, 0));
+
+      if (excess.length > 0) {
+        await transaction
+          .update(customBots)
+          .set({ desiredState: "stopped", updatedAt: this.clock() })
+          .where(
+            inArray(
+              customBots.id,
+              excess.map((bot) => bot.id),
+            ),
+          );
+      }
+    });
   }
 
   public async listGrants(): Promise<
@@ -275,11 +301,36 @@ export class CustomBotService {
     botId: string,
     desiredState: CustomBotDesiredState,
   ): Promise<void> {
-    await this.getOwned(ownerUserId, botId);
-    await this.database
-      .update(customBots)
-      .set({ desiredState, updatedAt: this.clock() })
-      .where(eq(customBots.id, botId));
+    const bot = await this.getOwned(ownerUserId, botId);
+
+    await this.database.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`custom-bots:${ownerUserId}`}))`,
+      );
+
+      // Only as many bots run as there are slots; a stopped bot may wait for a free one.
+      if (desiredState === "running" && bot.desiredState !== "running") {
+        const [grant] = await transaction
+          .select({ slots: customBotGrants.slots })
+          .from(customBotGrants)
+          .where(eq(customBotGrants.userId, ownerUserId));
+        const [running] = await transaction
+          .select({ value: count() })
+          .from(customBots)
+          .where(
+            and(eq(customBots.ownerUserId, ownerUserId), eq(customBots.desiredState, "running")),
+          );
+
+        if ((running?.value ?? 0) >= (grant?.slots ?? 0)) {
+          throw new CustomBotError("no-slot", "All your Custom bot slots are in use.");
+        }
+      }
+
+      await transaction
+        .update(customBots)
+        .set({ desiredState, updatedAt: this.clock() })
+        .where(eq(customBots.id, botId));
+    });
   }
 
   // ─── Orchestrator ────────────────────────────────────────────────────────
