@@ -51,8 +51,8 @@
   --color-on-primary: #600049;
   --color-primary-container: #ff85d2;
   --color-on-primary-container: #7b125f;
-  --color-secondary-container: #683a56;
-  --color-on-secondary-container: #ffd8eb;
+  --color-secondary-container: #3d2d36;
+  --color-on-secondary-container: #f2dce7;
   --color-tertiary: #e2bcff;
   --color-tertiary-container: #cf98fc;
   --color-on-tertiary-container: #5b2885;
@@ -788,8 +788,13 @@ body::after {
   clip-path: var(--shape-gem);
 }
 
-/* Icon tiles: a soft pink shape holding the icon, as on the product page. */
+/* Icon tiles: a soft shape holding the icon. Neutral by default; pink only for what is on. */
 .icon-tile {
+  background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+  color: var(--color-muted);
+}
+
+.icon-tile-on {
   background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   color: var(--color-primary);
 }

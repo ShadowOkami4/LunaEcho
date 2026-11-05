@@ -70,8 +70,9 @@ export async function Notice({ code }: Readonly<{ code: string | undefined }>) {
 }
 
 /**
- * A section of a settings page: an M3 surface container with an optional leading icon. A
- * collapsible section folds away to its header, so long pages stay easy to scan.
+ * A section of a settings page: a heading with an optional leading icon, set off from the
+ * section before it by a hairline rather than a box. A collapsible section folds away to its
+ * header, so long pages stay easy to scan.
  */
 export function Card({
   action,
@@ -96,7 +97,7 @@ export function Card({
   const header = (
     <>
       {icon !== undefined && (
-        <span className="shape-cookie9 grid size-11 shrink-0 place-items-center icon-tile">
+        <span className="shape-cookie9 icon-tile grid size-10 shrink-0 place-items-center">
           <Icon name={icon} className="size-5" />
         </span>
       )}
@@ -112,18 +113,18 @@ export function Card({
 
   if (collapsible) {
     return (
-      <details open={defaultOpen} className="m3-card rise shadow-edge bg-surface-low">
-        <summary className="flex cursor-pointer items-start gap-4 rounded-m3-xl p-5 hover:bg-surface/60 sm:p-6">
+      <details open={defaultOpen} className="rise border-t border-white/6 pt-6">
+        <summary className="-m-2 flex cursor-pointer items-start gap-4 rounded-m3-lg p-2 hover:bg-surface/60">
           {header}
           <Icon name="expandMore" className="m3-chevron mt-2 size-6 text-muted" />
         </summary>
-        <div className="flex flex-col gap-4 px-5 pb-5 sm:px-6 sm:pb-6">{children}</div>
+        <div className="flex flex-col gap-4 pt-5">{children}</div>
       </details>
     );
   }
 
   return (
-    <section className="m3-card rise flex flex-col gap-5 shadow-edge bg-surface-low p-5 sm:p-6">
+    <section className="rise flex flex-col gap-5 border-t border-white/6 pt-6">
       <header className="flex items-start gap-4">{header}</header>
       <div className="flex flex-col gap-4">{children}</div>
     </section>

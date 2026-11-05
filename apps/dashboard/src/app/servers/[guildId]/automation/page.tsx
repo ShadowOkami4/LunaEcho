@@ -95,7 +95,7 @@ export default async function AutomationPage({
                   <summary className="flex cursor-pointer items-center gap-3 rounded-m3-lg px-4 py-3 hover:bg-surface-high/70">
                     <span
                       className={`shape-cookie9 grid size-10 shrink-0 place-items-center ${
-                        rule.enabled ? "icon-tile" : "icon-tile-off"
+                        rule.enabled ? "icon-tile-on" : "icon-tile-off"
                       }`}
                     >
                       <Icon name={triggerIcons[rule.trigger.kind]} className="size-5" />
