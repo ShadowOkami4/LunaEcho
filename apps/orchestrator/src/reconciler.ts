@@ -50,10 +50,13 @@ export class Reconciler {
   public async reconcileOnce(): Promise<void> {
     const deployments = await this.bots.listDeployments();
     const known = new Set(deployments.map((deployment) => deployment.id));
+    // The tag stays lunaecho-bot:latest across releases; its id changes with every new image, so
+    // loading a new image rolls every bot over to it on the next pass.
+    const imageId = (await this.docker.imageId(this.config.image)) ?? this.config.image;
 
     for (const deployment of deployments) {
       try {
-        await this.reconcile(deployment);
+        await this.reconcile(deployment, imageId);
       } catch (error) {
         this.logger.warn({ botId: deployment.id, err: toError(error) }, "Reconciling a bot failed");
         await this.report(deployment, "failed", "LunaEcho could not start this bot. It retries.");
@@ -71,7 +74,7 @@ export class Reconciler {
     }
   }
 
-  private async reconcile(deployment: CustomBotDeployment): Promise<void> {
+  private async reconcile(deployment: CustomBotDeployment, imageId: string): Promise<void> {
     const name = containerName(deployment.id);
 
     if (deployment.desiredState === "deleted") {
@@ -113,7 +116,7 @@ export class Reconciler {
         : { "lavalink-password": this.config.lavalink.password }),
     });
 
-    const revision = this.revisionOf(deployment);
+    const revision = this.revisionOf(deployment, imageId);
     const existing = (await this.docker.listContainers(`${managedLabel}=${deployment.id}`))[0];
 
     const current = existing?.Labels[revisionLabel] === revision;
@@ -170,11 +173,11 @@ export class Reconciler {
   }
 
   /** Changes whenever the container must be recreated. */
-  private revisionOf(deployment: CustomBotDeployment): string {
+  private revisionOf(deployment: CustomBotDeployment, imageId: string): string {
     return createHash("sha256")
       .update(
         JSON.stringify([
-          this.config.image,
+          imageId,
           this.config.memoryBytes,
           this.config.lavalink?.url ?? null,
           deployment.applicationId,

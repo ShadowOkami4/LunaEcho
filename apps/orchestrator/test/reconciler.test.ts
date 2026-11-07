@@ -34,6 +34,8 @@ interface FakeContainer {
 /** An in-memory Docker that keeps containers by name. */
 class FakeDocker implements DockerApi {
   public readonly containers = new Map<string, FakeContainer>();
+  /** The id behind the bot image's tag; a new value stands for a newly loaded image. */
+  public image = "sha256:first";
   public now = new Date("2026-01-01T00:00:00.000Z");
 
   public listContainers(label: string): Promise<readonly ContainerSummary[]> {
@@ -111,6 +113,10 @@ class FakeDocker implements DockerApi {
   public removeContainer(id: string): Promise<void> {
     this.containers.delete(id);
     return Promise.resolve();
+  }
+
+  public imageId(): Promise<string | undefined> {
+    return Promise.resolve(this.image);
   }
 }
 
@@ -255,6 +261,22 @@ describe("Reconciler", () => {
       docker.containers.get(containerName(bot.id))?.labels["lunaecho.custom.revision"],
     ).not.toBe(before);
     expect(secrets.folders.get(bot.id)?.["discord-token"]).toBe(otherToken);
+  });
+
+  it("rolls a bot over to a newly loaded image under the same tag", async () => {
+    const bot = await bots.create("alice", token, inspection);
+    await reconciler.reconcileOnce();
+    const revision = () =>
+      docker.containers.get(containerName(bot.id))?.labels["lunaecho.custom.revision"];
+    const before = revision();
+
+    await reconciler.reconcileOnce();
+    expect(revision()).toBe(before);
+
+    docker.image = "sha256:second";
+    await reconciler.reconcileOnce();
+    expect(revision()).not.toBe(before);
+    expect(docker.containers.get(containerName(bot.id))?.running).toBe(true);
   });
 
   it("removes everything of a deleted bot, and containers that have no bot", async () => {

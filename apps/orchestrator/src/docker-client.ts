@@ -38,6 +38,8 @@ export interface DockerApi {
   startContainer(id: string): Promise<void>;
   stopContainer(id: string): Promise<void>;
   removeContainer(id: string): Promise<void>;
+  /** The local image's id (sha256:…), or undefined when Docker does not have it. */
+  imageId(reference: string): Promise<string | undefined>;
 }
 
 /** A small Docker Engine API client over the Unix socket; no third-party dependency. */
@@ -89,6 +91,21 @@ export class DockerClient implements DockerApi {
 
   public async removeContainer(id: string): Promise<void> {
     await this.call("DELETE", `/containers/${encodeURIComponent(id)}?force=true`, undefined, [404]);
+  }
+
+  public async imageId(reference: string): Promise<string | undefined> {
+    try {
+      const image = (await this.call("GET", `/images/${encodeURIComponent(reference)}/json`)) as {
+        Id: string;
+      };
+      return image.Id;
+    } catch (error) {
+      if (error instanceof DockerError && error.status === 404) {
+        return undefined;
+      }
+
+      throw error;
+    }
   }
 
   private call(
