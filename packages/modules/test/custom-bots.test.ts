@@ -78,6 +78,12 @@ describe("CustomBotService", () => {
 
     await expect(service.listOwned("bob")).resolves.toEqual([]);
     await expect(service.getOwned("bob", bot.id)).rejects.toBeInstanceOf(CustomBotError);
+    await expect(service.openOwned("bob", bot.id)).rejects.toBeInstanceOf(CustomBotError);
+    await expect(service.openOwned("alice", bot.id)).resolves.toMatchObject({
+      bot: { id: bot.id },
+      databaseName: expect.stringMatching(/^lunaecho_custom_/) as unknown,
+      token,
+    });
     await expect(service.setDesiredState("bob", bot.id, "stopped")).rejects.toBeInstanceOf(
       CustomBotError,
     );

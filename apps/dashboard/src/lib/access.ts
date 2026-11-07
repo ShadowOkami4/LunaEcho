@@ -1,9 +1,13 @@
 import "server-only";
 
-import { notFound, redirect } from "next/navigation";
-import { cache } from "react";
+import { redirect } from "next/navigation";
 
-import { fetchBotGuildIds, fetchUserGuilds, type DiscordPartialGuild } from "./discord";
+import {
+  fetchBotGuildIds,
+  fetchUserGuilds,
+  type BotIdentity,
+  type DiscordPartialGuild,
+} from "./discord";
 import { canManage } from "./permissions";
 import { getActiveSession, type ActiveSession } from "./session";
 
@@ -19,10 +23,14 @@ export async function requireSession(): Promise<ActiveSession> {
   return session;
 }
 
-export async function listManageableGuilds(session: ActiveSession): Promise<ManageableGuild[]> {
+/** The user's servers they may manage, marked where the bot (LunaEcho or a Custom bot) is in. */
+export async function listManageableGuilds(
+  session: ActiveSession,
+  identity?: BotIdentity,
+): Promise<ManageableGuild[]> {
   const [userGuilds, botGuilds] = await Promise.all([
     fetchUserGuilds(session.accessToken),
-    fetchBotGuildIds(),
+    fetchBotGuildIds(identity),
   ]);
 
   return userGuilds
@@ -36,23 +44,3 @@ export async function listManageableGuilds(session: ActiveSession): Promise<Mana
           : 1,
     );
 }
-
-/**
- * Checked on every page and every change: the signed-in user must be allowed to manage the
- * server and LunaEcho must be in it. Anything else looks like a missing page.
- */
-async function loadManageableGuild(
-  guildId: string,
-): Promise<Readonly<{ guild: ManageableGuild; session: ActiveSession }>> {
-  const session = await requireSession();
-  const guild = (await listManageableGuilds(session)).find((candidate) => candidate.id === guildId);
-
-  if (guild?.botPresent !== true) {
-    notFound();
-  }
-
-  return { guild, session };
-}
-
-/** Shared by the layout and the page of one request, so the check runs once per view. */
-export const requireManageableGuild = cache(loadManageableGuild);

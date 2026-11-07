@@ -1,8 +1,6 @@
 import { maximumVolume } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { workspaceFor } from "@/lib/workspace";
 
 import { saveMusicSettings } from "../actions";
 import { Button, Card, HiddenGuild, inputClass, Notice } from "../ui";
@@ -13,16 +11,11 @@ export default async function MusicPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
-  const [settings, roles] = await Promise.all([
-    app.musicSettings.get(guildId),
-    fetchGuildRoles(guildId),
-  ]);
+  const { app, discord, guildId, scope } = await workspaceFor(params);
+  const [settings, roles] = await Promise.all([app.musicSettings.get(guildId), discord.roles()]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -33,7 +26,7 @@ export default async function MusicPage({
         description="Members play music with /music play. Playback runs on the Lavalink audio node."
       >
         <form action={saveMusicSettings} className="grid gap-3 sm:grid-cols-2">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <label className="flex flex-col gap-1 text-sm">
             DJ role
             <select name="djRoleId" defaultValue={settings.djRoleId ?? ""} className={inputClass}>

@@ -4,15 +4,10 @@ import type { BotTaskKind, BotTaskPayloads } from "@lunaecho/modules";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-
-import { requireManageableGuild } from "@/lib/access";
-import { fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services, type DashboardServices } from "@/lib/services";
+import type { DashboardServices } from "@/lib/services";
+import { requireWorkspace, scopeFromForm, type Workspace } from "@/lib/workspace";
 
 import { errorNoticeCookie } from "./ui";
-
-const snowflake = z.string().regex(/^\d{17,20}$/);
 
 /**
  * One submitted settings form. Every action builds one: it re-checks access, because a form can
@@ -23,15 +18,19 @@ export class SettingsForm {
     public readonly actorId: string,
     public readonly guildId: string,
     public readonly app: DashboardServices,
+    /** Channels and roles as the bot of this form's scope sees them. */
+    public readonly discord: Workspace["discord"],
+    /** The settings pages this form belongs to, such as /servers/<server>. */
+    private readonly base: string,
     private readonly formData: FormData,
     /** The page to return to, such as "/welcome". */
     private readonly page: string,
   ) {}
 
   public static async open(formData: FormData, page: string): Promise<SettingsForm> {
-    const guildId = snowflake.parse(formData.get("guildId"));
-    const { session } = await requireManageableGuild(guildId);
-    return new SettingsForm(session.user.id, guildId, await services(), formData, page);
+    const { botId, guildId } = scopeFromForm(formData);
+    const { app, base, discord, session } = await requireWorkspace(guildId, botId);
+    return new SettingsForm(session.user.id, guildId, app, discord, base, formData, page);
   }
 
   public text(field: string): string {
@@ -66,9 +65,7 @@ export class SettingsForm {
       return null;
     }
 
-    const channel = (await fetchGuildChannels(this.guildId)).find(
-      (candidate) => candidate.id === id,
-    );
+    const channel = (await this.discord.channels()).find((candidate) => candidate.id === id);
 
     if (channel === undefined || !types.includes(channel.type)) {
       this.finish("invalid");
@@ -83,7 +80,7 @@ export class SettingsForm {
 
   public async channels(field: string, types: readonly number[]): Promise<string[]> {
     const wanted = new Set(this.formData.getAll(field).filter((id) => typeof id === "string"));
-    return (await fetchGuildChannels(this.guildId))
+    return (await this.discord.channels())
       .filter((channel) => wanted.has(channel.id) && types.includes(channel.type))
       .map((channel) => channel.id);
   }
@@ -95,7 +92,7 @@ export class SettingsForm {
       return null;
     }
 
-    if (!(await fetchGuildRoles(this.guildId)).some((role) => role.id === id)) {
+    if (!(await this.discord.roles()).some((role) => role.id === id)) {
       this.finish("invalid");
     }
 
@@ -109,7 +106,7 @@ export class SettingsForm {
   /** Roles in the order the server lists them; unknown and integration roles are dropped. */
   public async roles(field: string): Promise<string[]> {
     const wanted = new Set(this.formData.getAll(field).filter((id) => typeof id === "string"));
-    return (await fetchGuildRoles(this.guildId))
+    return (await this.discord.roles())
       .filter((role) => wanted.has(role.id))
       .map((role) => role.id);
   }
@@ -128,7 +125,7 @@ export class SettingsForm {
   }
 
   public finish(notice: string): never {
-    const path = `/servers/${this.guildId}${this.page}`;
+    const path = `${this.base}${this.page}`;
     revalidatePath(path);
     redirect(`${path}?notice=${encodeURIComponent(notice)}`);
   }
@@ -151,7 +148,7 @@ export class SettingsForm {
         (await cookies()).set(errorNoticeCookie, error.message.slice(0, 300), {
           httpOnly: true,
           maxAge: 60,
-          path: "/servers",
+          path: "/",
           sameSite: "lax",
         });
         this.finish("error");

@@ -1,14 +1,7 @@
 import { maximumRoleMenuOptions, maximumRoleMenusPerGuild, type RoleMenu } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import {
-  channelTypes,
-  fetchGuildChannels,
-  fetchGuildRoles,
-  type DiscordChannel,
-  type DiscordRole,
-} from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes, type DiscordChannel, type DiscordRole } from "@/lib/discord";
+import { workspaceFor, type Scope } from "@/lib/workspace";
 
 import {
   Button,
@@ -27,12 +20,12 @@ export const dynamic = "force-dynamic";
 
 function MenuForm({
   channels,
-  guildId,
   menu,
   roles,
+  scope,
 }: Readonly<{
   channels: readonly DiscordChannel[];
-  guildId: string;
+  scope: Scope;
   menu: RoleMenu | undefined;
   roles: readonly DiscordRole[];
 }>) {
@@ -40,7 +33,7 @@ function MenuForm({
 
   return (
     <form action={saveRoleMenu} className="grid gap-3 sm:grid-cols-2">
-      <HiddenGuild guildId={guildId} />
+      <HiddenGuild scope={scope} />
       {menu !== undefined && <input type="hidden" name="menuId" value={menu.id} />}
       <Field label="Title">
         <input
@@ -137,17 +130,15 @@ export default async function RolesPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.roleMenus.invalidate(guildId);
   const [menus, channels, roles] = await Promise.all([
     app.roleMenus.list(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
   const channelName = new Map(channels.map((channel) => [channel.id, channel.name]));
@@ -162,9 +153,9 @@ export default async function RolesPage({
           title={menu.title}
           description={`#${channelName.get(menu.channelId) ?? "deleted channel"} · ${menu.options.length} roles · ${menu.messageId === null ? "not posted yet" : "posted"}`}
         >
-          <MenuForm channels={textChannels} guildId={guildId} menu={menu} roles={roles} />
+          <MenuForm channels={textChannels} scope={scope} menu={menu} roles={roles} />
           <form action={deleteRoleMenu}>
-            <HiddenGuild guildId={guildId} />
+            <HiddenGuild scope={scope} />
             <input type="hidden" name="menuId" value={menu.id} />
             <Button tone="remove" icon="delete">
               Delete menu
@@ -179,7 +170,7 @@ export default async function RolesPage({
           title="New role menu"
           description={`Members pick roles themselves with buttons or a drop-down. ${menus.length}/${maximumRoleMenusPerGuild} menus.`}
         >
-          <MenuForm channels={textChannels} guildId={guildId} menu={undefined} roles={roles} />
+          <MenuForm channels={textChannels} scope={scope} menu={undefined} roles={roles} />
         </Card>
       )}
     </div>

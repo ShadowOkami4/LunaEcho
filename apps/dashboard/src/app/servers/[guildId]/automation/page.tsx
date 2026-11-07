@@ -1,9 +1,8 @@
 import { maximumAutomationRulesPerGuild, type AutomationRule } from "@lunaecho/modules";
 
 import { Icon, type IconName } from "@/components/icon";
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import { Button, Card, Chip, HiddenGuild, Notice } from "../ui";
 import { deleteAutomationRule, saveAutomationRule } from "./actions";
@@ -51,17 +50,15 @@ export default async function AutomationPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.automation.invalidate(guildId);
   const [rules, channels, roles] = await Promise.all([
     app.automation.list(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const channelOptions = channels
     .filter((channel) => channel.type === channelTypes.text)
@@ -125,7 +122,7 @@ export default async function AutomationPage({
                       roles={roleOptions}
                     />
                     <form action={deleteAutomationRule} className="-mt-11 self-start">
-                      <HiddenGuild guildId={guildId} />
+                      <HiddenGuild scope={scope} />
                       <input type="hidden" name="ruleId" value={rule.id} />
                       <Button tone="remove" icon="delete">
                         Delete rule

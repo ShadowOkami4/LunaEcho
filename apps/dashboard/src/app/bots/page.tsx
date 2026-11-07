@@ -1,5 +1,6 @@
 import type { CustomBot } from "@lunaecho/modules";
 import Image from "next/image";
+import Link from "next/link";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Icon } from "@/components/icon";
@@ -8,6 +9,7 @@ import { requireSession } from "@/lib/access";
 import { billingAvailable } from "@/lib/billing";
 import { botAvatarUrl, customBotInviteUrl } from "@/lib/discord";
 import { services } from "@/lib/services";
+import { customServersAvailable } from "@/lib/workspace";
 
 import {
   Button,
@@ -209,6 +211,13 @@ export default async function CustomBotsPage({
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        {customServersAvailable() && (
+                          // Its server settings live in its own database, opened per bot.
+                          <Link href={`/bots/${bot.id}`} className={buttonClass("neutral")}>
+                            <Icon name="settings" className="-ml-1 size-[18px]" />
+                            Servers
+                          </Link>
+                        )}
                         <a
                           href={customBotInviteUrl(bot.applicationId)}
                           target="_blank"

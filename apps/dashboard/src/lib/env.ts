@@ -24,6 +24,16 @@ const environmentSchema = z.object({
    * the Custom bots page explains that Custom is not set up on this dashboard.
    */
   CUSTOM_BOT_TOKEN_KEY_FILE: z.string().min(1).optional(),
+  /**
+   * Where Custom bots' databases live, as the dashboard reaches them (custom-postgres:5432), and
+   * the orchestrator's secrets folder holding each bot's database password. With both set, owners
+   * can edit their Custom bots' server settings here.
+   */
+  CUSTOM_DATABASE_HOST: z
+    .string()
+    .regex(/^[\w.-]+:\d+$/, "must be host:port")
+    .optional(),
+  CUSTOM_SECRETS_DIR: z.string().min(1).optional(),
   /** Must match the bot's mode, so both agree on each server's plan. */
   LUNA_RUNTIME_MODE: z.enum(runtimeModes).default("self-hosted"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

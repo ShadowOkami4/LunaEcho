@@ -1,6 +1,10 @@
 import "server-only";
 
-import { createRuntimeEntitlementProvider, EntitlementService } from "@lunaecho/core";
+import {
+  createRuntimeEntitlementProvider,
+  EntitlementService,
+  type RuntimeMode,
+} from "@lunaecho/core";
 import { connectDatabase, type DatabaseConnection } from "@lunaecho/db";
 import {
   AutomationService,
@@ -51,19 +55,30 @@ export type DashboardServices = Readonly<{
 
 interface ServiceHolder {
   services?: Promise<DashboardServices> | undefined;
+  /** One small pool per Custom bot database, keyed by bot id and connection string. */
+  custom?: Map<string, Promise<DashboardServices>>;
 }
 
 /** Kept on globalThis so development hot reloads reuse one database pool. */
 const holder = globalThis as typeof globalThis & { lunaEchoDashboard?: ServiceHolder };
 
-async function createServices(): Promise<DashboardServices> {
+type ServiceOptions = Readonly<{
+  connectionString: string;
+  /** Only the Cloud database holds Custom bots; a Custom bot's own database does not. */
+  manageCustomBots: boolean;
+  poolSize: number;
+  runtimeMode: RuntimeMode;
+}>;
+
+async function createServices(options: ServiceOptions): Promise<DashboardServices> {
   const database: DatabaseConnection = await connectDatabase({
-    connectionString: env().DATABASE_URL,
-    poolSize: 5,
+    connectionString: options.connectionString,
+    poolSize: options.poolSize,
+    // The bot owns its schema and migrates it on start; the dashboard only reads and writes.
     runMigrations: false,
   });
   const db = database.db;
-  const tokenKeyFile = env().CUSTOM_BOT_TOKEN_KEY_FILE;
+  const tokenKeyFile = options.manageCustomBots ? env().CUSTOM_BOT_TOKEN_KEY_FILE : undefined;
 
   // Pages call invalidate() before reading, so they show what the bot stored a moment ago too.
   return {
@@ -72,7 +87,7 @@ async function createServices(): Promise<DashboardServices> {
       tokenKeyFile === undefined
         ? undefined
         : new CustomBotService(db, TokenVault.fromKeyFile(tokenKeyFile)),
-    entitlements: new EntitlementService(createRuntimeEntitlementProvider(env().LUNA_RUNTIME_MODE)),
+    entitlements: new EntitlementService(createRuntimeEntitlementProvider(options.runtimeMode)),
     levels: new LevelService(db),
     logs: new LogSettingsService(db),
     moderationCases: new ModerationActionService(
@@ -101,7 +116,12 @@ async function createServices(): Promise<DashboardServices> {
 
 export function services(): Promise<DashboardServices> {
   holder.lunaEchoDashboard ??= {};
-  holder.lunaEchoDashboard.services ??= createServices().catch((error: unknown) => {
+  holder.lunaEchoDashboard.services ??= createServices({
+    connectionString: env().DATABASE_URL,
+    manageCustomBots: true,
+    poolSize: 5,
+    runtimeMode: env().LUNA_RUNTIME_MODE,
+  }).catch((error: unknown) => {
     // A failed start must not be cached forever; the next request tries again.
     if (holder.lunaEchoDashboard !== undefined) {
       holder.lunaEchoDashboard.services = undefined;
@@ -110,4 +130,43 @@ export function services(): Promise<DashboardServices> {
     throw error;
   });
   return holder.lunaEchoDashboard.services;
+}
+
+/**
+ * The same services on a Custom bot's own database, logged in as that bot's database role, so
+ * the dashboard can reach no other customer's data through it. A changed password (a recreated
+ * database) gives a new key and so a new pool.
+ */
+export function customBotServices(
+  botId: string,
+  connectionString: string,
+): Promise<DashboardServices> {
+  holder.lunaEchoDashboard ??= {};
+  const pools = (holder.lunaEchoDashboard.custom ??= new Map());
+  const key = `${botId}
+${connectionString}`;
+  let pending = pools.get(key);
+
+  if (pending === undefined) {
+    // Drop an older pool of the same bot; its password no longer works.
+    for (const stale of [...pools.keys()].filter((candidate) =>
+      candidate.startsWith(`${botId}
+`),
+    )) {
+      pools.delete(stale);
+    }
+
+    pending = createServices({
+      connectionString,
+      manageCustomBots: false,
+      poolSize: 2,
+      runtimeMode: "cloud-custom",
+    }).catch((error: unknown) => {
+      pools.delete(key);
+      throw error;
+    });
+    pools.set(key, pending);
+  }
+
+  return pending;
 }

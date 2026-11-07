@@ -1,8 +1,7 @@
 import { maximumAutoroles, maximumWelcomeMessageLength } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import {
   Button,
@@ -32,19 +31,17 @@ export default async function WelcomePage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.welcome.invalidate(guildId);
   app.welcomeCards.invalidate(guildId);
   const [settings, card, channels, roles] = await Promise.all([
     app.welcome.get(guildId),
     app.welcomeCards.get(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
   const channelName = new Map(channels.map((channel) => [channel.id, channel.name]));
@@ -60,7 +57,7 @@ export default async function WelcomePage({
       <Notice code={(await searchParams).notice} />
 
       <form action={saveWelcomeSettings} className="flex flex-col gap-4">
-        <HiddenGuild guildId={guildId} />
+        <HiddenGuild scope={scope} />
 
         <Card
           collapsible
@@ -201,7 +198,7 @@ export default async function WelcomePage({
       >
         <CardDesigner
           action={saveWelcomeCard}
-          guildId={guildId}
+          scope={scope}
           hasBackgroundImage={card.hasBackgroundImage}
           initial={{
             accentColor: card.accentColor,
@@ -226,7 +223,7 @@ export default async function WelcomePage({
             </p>
           </div>
           <form action={uploadWelcomeBackground} className="flex flex-wrap items-center gap-2">
-            <HiddenGuild guildId={guildId} />
+            <HiddenGuild scope={scope} />
             <input
               type="file"
               name="background"
@@ -240,7 +237,7 @@ export default async function WelcomePage({
           </form>
           {card.hasBackgroundImage && (
             <form action={removeWelcomeBackground}>
-              <HiddenGuild guildId={guildId} />
+              <HiddenGuild scope={scope} />
               <Button tone="remove" icon="delete">
                 Remove
               </Button>

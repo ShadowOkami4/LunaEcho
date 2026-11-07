@@ -10,10 +10,9 @@ import {
   type WelcomeCardDesign,
 } from "@lunaecho/modules";
 
-import { listManageableGuilds } from "@/lib/access";
 import { userAvatarUrl } from "@/lib/discord";
-import { services } from "@/lib/services";
 import { getActiveSession } from "@/lib/session";
+import { requireWorkspace } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -35,22 +34,16 @@ function pick<Value extends string>(
  */
 export async function GET(
   request: Request,
-  { params }: Readonly<{ params: Promise<{ guildId: string }> }>,
+  { params }: Readonly<{ params: Promise<{ botId?: string; guildId: string }> }>,
 ): Promise<Response> {
-  const { guildId } = await params;
-  const session = await getActiveSession();
+  const { botId, guildId } = await params;
 
-  if (session === undefined) {
+  if ((await getActiveSession()) === undefined) {
     return new Response(null, { status: 401 });
   }
 
-  const guild = (await listManageableGuilds(session)).find(
-    (candidate) => candidate.id === guildId && candidate.botPresent,
-  );
-
-  if (guild === undefined) {
-    return new Response(null, { status: 404 });
-  }
+  // Answers 404 unless the user manages the server and the bot (LunaEcho or theirs) is in it.
+  const { app, guild, session } = await requireWorkspace(guildId, botId);
 
   const query = new URL(request.url).searchParams;
   const color = (name: string, fallback: string) => {
@@ -78,9 +71,7 @@ export async function GET(
           )
           .catch(() => undefined);
   const backgroundImage =
-    design.background === "image"
-      ? await (await services()).welcomeCards.getBackgroundImage(guildId)
-      : undefined;
+    design.background === "image" ? await app.welcomeCards.getBackgroundImage(guildId) : undefined;
 
   const png = await renderWelcomeCard({
     backgroundImage,

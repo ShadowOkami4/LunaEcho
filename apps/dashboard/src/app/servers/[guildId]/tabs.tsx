@@ -6,12 +6,13 @@ import type { ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
 import { FormSwitch } from "@/components/submit-button";
+import { scopeBase, type Scope } from "@/lib/scope";
 
 import { sectionGroups, sections, type Section, type SectionGroup } from "./sections";
 
-function useCurrentSection(guildId: string): Section | undefined {
+function useCurrentSection(scope: Scope): Section | undefined {
   const pathname = usePathname();
-  const base = `/servers/${guildId}`;
+  const base = scopeBase(scope);
   return sections.find((section) => pathname === `${base}${section.href}`);
 }
 
@@ -30,8 +31,8 @@ export type ModuleSwitchState = Readonly<{
  * The setting groups as tabs across the top. Each tab opens the first page of its group; the
  * pages inside a group are listed in the module pane beside the content.
  */
-export function GroupTabs({ guildId }: Readonly<{ guildId: string }>) {
-  const current = groupOf(useCurrentSection(guildId));
+export function GroupTabs({ scope }: Readonly<{ scope: Scope }>) {
+  const current = groupOf(useCurrentSection(scope));
 
   return (
     <nav
@@ -44,7 +45,7 @@ export function GroupTabs({ guildId }: Readonly<{ guildId: string }>) {
         return (
           <Link
             key={group.label}
-            href={`/servers/${guildId}${group.sections[0]?.href ?? ""}`}
+            href={`${scopeBase(scope)}${group.sections[0]?.href ?? ""}`}
             aria-current={selected ? "page" : undefined}
             className={`m3-button inline-flex h-10 shrink-0 items-center px-4 text-sm font-medium ${
               selected
@@ -65,15 +66,15 @@ export function GroupTabs({ guildId }: Readonly<{ guildId: string }>) {
  * LunaEcho project page. Groups with a single page (the overview) have no pane.
  */
 export function ModulePane({
-  guildId,
+  scope,
   states,
   toggleAction,
 }: Readonly<{
-  guildId: string;
+  scope: Scope;
   states: readonly ModuleSwitchState[];
   toggleAction: (formData: FormData) => Promise<void>;
 }>) {
-  const current = useCurrentSection(guildId);
+  const current = useCurrentSection(scope);
   const group = groupOf(current);
 
   if (group === undefined || group.sections.length < 2) {
@@ -98,7 +99,7 @@ export function ModulePane({
             }`}
           >
             <Link
-              href={`/servers/${guildId}${section.href}`}
+              href={`${scopeBase(scope)}${section.href}`}
               aria-current={selected ? "page" : undefined}
               className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-m3-lg px-3 lg:min-h-13"
             >
@@ -112,7 +113,8 @@ export function ModulePane({
             </Link>
             {state?.available === true ? (
               <form action={toggleAction}>
-                <input type="hidden" name="guildId" value={guildId} />
+                <input type="hidden" name="guildId" value={scope.guildId} />
+                <input type="hidden" name="botId" value={scope.botId ?? ""} />
                 <input type="hidden" name="moduleId" value={state.moduleId} />
                 <input type="hidden" name="enabled" value={String(!state.enabled)} />
                 <input type="hidden" name="returnTo" value={current?.href ?? ""} />
@@ -136,14 +138,14 @@ export function ModulePane({
  */
 export function ModuleFrame({
   children,
-  guildId,
+  scope,
   states,
 }: Readonly<{
   children: ReactNode;
-  guildId: string;
+  scope: Scope;
   states: readonly ModuleSwitchState[];
 }>) {
-  const current = useCurrentSection(guildId);
+  const current = useCurrentSection(scope);
   const state =
     current?.moduleId === undefined
       ? undefined

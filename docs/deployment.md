@@ -72,7 +72,11 @@ Custom database server, Lavalink, and the orchestrator from `~/lunaecho-custom`;
 Cloud dashboard.
 
 Customers add, start, stop, and remove their bots on the dashboard's **Custom bots** page
-(`/bots`). Until billing exists, an operator grants the slots inside the orchestrator container:
+(`/bots`). **Servers** on a bot opens `/bots/<bot>/servers/<server>`, the same settings pages as
+LunaEcho's, stored in that bot's own database. For that the Cloud dashboard joins the
+`lunaecho-custom` network and mounts the `lunaecho-custom-secrets` volume read-only, logging in
+to each bot's database with that bot's own password; start the Custom project once before the
+Cloud project so both exist. Only the bot's owner can open its servers. An operator grants the slots inside the orchestrator container:
 
 ```bash
 docker compose exec orchestrator node dist/cli.js grant <discord-user-id> <slots> [note…]

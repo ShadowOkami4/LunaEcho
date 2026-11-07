@@ -1,8 +1,7 @@
 import { logCategories, maximumIgnoredLogChannels } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import { Button, Card, Field, HiddenGuild, MultiPicker, Notice, Picker } from "../ui";
 import { saveLogSettings } from "./actions";
@@ -21,17 +20,12 @@ export default async function LogsPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.logs.invalidate(guildId);
-  const [settings, channels] = await Promise.all([
-    app.logs.get(guildId),
-    fetchGuildChannels(guildId),
-  ]);
+  const [settings, channels] = await Promise.all([app.logs.get(guildId), discord.channels()]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
   const watchable = channels.filter(
     (channel) => channel.type === channelTypes.text || channel.type === channelTypes.voice,
@@ -46,7 +40,7 @@ export default async function LogsPage({
         description="Pick a channel for each kind of event. Categories without a channel are not logged. Log entries never ping anyone."
       >
         <form action={saveLogSettings} className="grid gap-3 sm:grid-cols-2">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           {logCategories.map((category) => (
             <Field
               key={category}

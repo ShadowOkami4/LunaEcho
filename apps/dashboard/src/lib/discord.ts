@@ -86,7 +86,15 @@ async function request<Result>(
   throw new DiscordApiError(429, `Discord API ${path} stayed rate limited`);
 }
 
-const bot = (): string => `Bot ${env().DISCORD_TOKEN}`;
+/**
+ * Which bot asks Discord: LunaEcho itself, or a customer's Custom bot. Custom bots are in other
+ * servers and see other channels, so their answers are cached under their own key.
+ */
+export type BotIdentity = Readonly<{ key: string; token: string }>;
+
+const officialBot = (): BotIdentity => ({ key: "official", token: env().DISCORD_TOKEN });
+
+const bot = (identity: BotIdentity = officialBot()): string => `Bot ${identity.token}`;
 
 export function authorizeUrl(state: string): string {
   const environment = env();
@@ -139,18 +147,20 @@ export function fetchUserGuilds(accessToken: string): Promise<readonly DiscordPa
   );
 }
 
-const botGuildCache = promiseCache<ReadonlySet<string>>(60_000, 1);
+const botGuildCache = promiseCache<ReadonlySet<string>>(60_000, 100);
 
 /** Every server the bot is in, paged 200 at a time and cached for a minute. */
-export function fetchBotGuildIds(): Promise<ReadonlySet<string>> {
-  return shared(botGuildCache, "bot", async () => {
+export function fetchBotGuildIds(
+  identity: BotIdentity = officialBot(),
+): Promise<ReadonlySet<string>> {
+  return shared(botGuildCache, identity.key, async () => {
     const ids = new Set<string>();
     let after = "0";
 
     for (;;) {
       const page = await request<DiscordPartialGuild[]>(
         `/users/@me/guilds?limit=200&after=${after}`,
-        bot(),
+        bot(identity),
       );
       page.forEach((guild) => ids.add(guild.id));
       const last = page.at(-1);
@@ -166,9 +176,12 @@ export function fetchBotGuildIds(): Promise<ReadonlySet<string>> {
 
 const guildChannelCache = promiseCache<readonly DiscordChannel[]>(30_000, 1_000);
 
-export function fetchGuildChannels(guildId: string): Promise<readonly DiscordChannel[]> {
-  return shared(guildChannelCache, guildId, async () =>
-    (await request<DiscordChannel[]>(`/guilds/${guildId}/channels`, bot())).sort(
+export function fetchGuildChannels(
+  guildId: string,
+  identity: BotIdentity = officialBot(),
+): Promise<readonly DiscordChannel[]> {
+  return shared(guildChannelCache, `${identity.key}:${guildId}`, async () =>
+    (await request<DiscordChannel[]>(`/guilds/${guildId}/channels`, bot(identity))).sort(
       (left, right) => left.position - right.position,
     ),
   );
@@ -176,9 +189,12 @@ export function fetchGuildChannels(guildId: string): Promise<readonly DiscordCha
 
 const guildRoleCache = promiseCache<readonly DiscordRole[]>(30_000, 1_000);
 
-export function fetchGuildRoles(guildId: string): Promise<readonly DiscordRole[]> {
-  return shared(guildRoleCache, guildId, async () =>
-    (await request<DiscordRole[]>(`/guilds/${guildId}/roles`, bot()))
+export function fetchGuildRoles(
+  guildId: string,
+  identity: BotIdentity = officialBot(),
+): Promise<readonly DiscordRole[]> {
+  return shared(guildRoleCache, `${identity.key}:${guildId}`, async () =>
+    (await request<DiscordRole[]>(`/guilds/${guildId}/roles`, bot(identity)))
       .filter((role) => role.id !== guildId && !role.managed)
       .sort((left, right) => right.position - left.position),
   );

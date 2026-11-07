@@ -18,9 +18,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { requireWorkspace, scopeFromForm, type Workspace } from "@/lib/workspace";
 
 import { sections } from "./sections";
 
@@ -28,37 +27,38 @@ const snowflake = z.string().regex(/^\d{17,20}$/);
 
 /** Every action re-checks access: a form can be replayed long after the page was loaded. */
 async function authorize(formData: FormData) {
-  const guildId = snowflake.parse(formData.get("guildId"));
-  const { session } = await requireManageableGuild(guildId);
-  return { actorId: session.user.id, guildId, services: await services() };
+  const { botId, guildId } = scopeFromForm(formData);
+  const workspace = await requireWorkspace(guildId, botId);
+  return { actorId: workspace.session.user.id, guildId, services: workspace.app, workspace };
 }
 
-function done(guildId: string, page: string, notice: string): never {
-  const path = `/servers/${guildId}${page}`;
+/** Back to a page of the form's scope (LunaEcho or a Custom bot) with a notice. */
+function done(workspace: Workspace, page: string, notice: string): never {
+  const path = `${workspace.base}${page}`;
   revalidatePath(path);
   redirect(`${path}?notice=${encodeURIComponent(notice)}`);
 }
 
 /** Ids come from the browser, so they must belong to this server and have the right type. */
 async function requireChannel(
-  guildId: string,
+  workspace: Workspace,
   channelId: string,
   types: readonly number[],
 ): Promise<string> {
-  const channel = (await fetchGuildChannels(guildId)).find(
+  const channel = (await workspace.discord.channels()).find(
     (candidate) => candidate.id === channelId,
   );
 
   if (channel === undefined || !types.includes(channel.type)) {
-    done(guildId, "", "invalid");
+    done(workspace, "", "invalid");
   }
 
   return channel.id;
 }
 
-async function requireRole(guildId: string, roleId: string): Promise<string> {
-  if (!(await fetchGuildRoles(guildId)).some((role) => role.id === roleId)) {
-    done(guildId, "", "invalid");
+async function requireRole(workspace: Workspace, roleId: string): Promise<string> {
+  if (!(await workspace.discord.roles()).some((role) => role.id === roleId)) {
+    done(workspace, "", "invalid");
   }
 
   return roleId;
@@ -70,12 +70,12 @@ function text(formData: FormData, field: string): string {
 }
 
 export async function setModuleEnabled(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const moduleId = text(formData, "moduleId");
 
   if (!isModuleId(moduleId)) {
     await app.tasks.enqueue("settings-changed", guildId, { module: "modules" });
-    done(guildId, "", "unknown-module");
+    done(workspace, "", "unknown-module");
   }
 
   const result = await app.moduleSettings.setEnabled(
@@ -88,26 +88,26 @@ export async function setModuleEnabled(formData: FormData): Promise<void> {
   // The switch exists on the overview and on each module's own page; return to where it was.
   const returnTo = text(formData, "returnTo");
   const page = sections.some((section) => section.href === returnTo) ? returnTo : "";
-  done(guildId, page, result === "not-available" ? "module-planned" : "saved");
+  done(workspace, page, result === "not-available" ? "module-planned" : "saved");
 }
 
 export async function applyAutomodProfile(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const profile = text(formData, "profile");
 
   if (!isConfigurableAutomodProfile(profile)) {
     await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-    done(guildId, "/moderation", "invalid");
+    done(workspace, "/moderation", "invalid");
   }
 
   await app.moderationSettings.applyAutomodProfile(guildId, profile, actorId);
   await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-  done(guildId, "/moderation", "saved");
+  done(workspace, "/moderation", "saved");
 }
 
 /** The form states the wanted value; toggling only when it differs makes resubmits harmless. */
 export async function setModerationFlag(formData: FormData): Promise<void> {
-  const { guildId, services: app } = await authorize(formData);
+  const { guildId, services: app, workspace } = await authorize(formData);
   const flag = z
     .enum(["bannedWords", "dmNotifications", "staffExempt"])
     .parse(formData.get("flag"));
@@ -131,11 +131,11 @@ export async function setModerationFlag(formData: FormData): Promise<void> {
 
   await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
 
-  done(guildId, "/moderation", "saved");
+  done(workspace, "/moderation", "saved");
 }
 
 export async function addBannedWord(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
 
   try {
     const result = await app.moderationSettings.addBannedWord(
@@ -144,11 +144,11 @@ export async function addBannedWord(formData: FormData): Promise<void> {
       actorId,
     );
     await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-    done(guildId, "/moderation", result.status === "added" ? "saved" : result.status);
+    done(workspace, "/moderation", result.status === "added" ? "saved" : result.status);
   } catch (error) {
     if (error instanceof BannedWordInputError) {
       await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-      done(guildId, "/moderation", "invalid-word");
+      done(workspace, "/moderation", "invalid-word");
     }
 
     throw error;
@@ -156,14 +156,14 @@ export async function addBannedWord(formData: FormData): Promise<void> {
 }
 
 export async function removeBannedWord(formData: FormData): Promise<void> {
-  const { guildId, services: app } = await authorize(formData);
+  const { guildId, services: app, workspace } = await authorize(formData);
   await app.moderationSettings.removeBannedWord(guildId, text(formData, "word"));
   await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-  done(guildId, "/moderation", "saved");
+  done(workspace, "/moderation", "saved");
 }
 
 export async function updateAutomodRule(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const kind = z.enum(automodRuleKinds).parse(formData.get("kind"));
   const action = z.enum(automodRuleActions).parse(formData.get("action"));
   const wanted = text(formData, "enabled") === "true";
@@ -218,7 +218,7 @@ export async function updateAutomodRule(formData: FormData): Promise<void> {
   } catch (error) {
     if (error instanceof AutomodThresholdInputError) {
       await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-      done(guildId, "/moderation", "invalid");
+      done(workspace, "/moderation", "invalid");
     }
 
     throw error;
@@ -226,17 +226,17 @@ export async function updateAutomodRule(formData: FormData): Promise<void> {
 
   await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
 
-  done(guildId, "/moderation", "saved");
+  done(workspace, "/moderation", "saved");
 }
 
 export async function setExemption(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const kind = z.enum(["channel", "role"]).parse(formData.get("kind"));
   const rawTargetId = snowflake.parse(formData.get("targetId"));
   const targetId =
     kind === "channel"
-      ? await requireChannel(guildId, rawTargetId, [channelTypes.text, channelTypes.voice])
-      : await requireRole(guildId, rawTargetId);
+      ? await requireChannel(workspace, rawTargetId, [channelTypes.text, channelTypes.voice])
+      : await requireRole(workspace, rawTargetId);
   const wanted = text(formData, "exempt") === "true";
   const settings = await app.moderationSettings.getSettings(guildId);
   const current = (
@@ -245,7 +245,7 @@ export async function setExemption(formData: FormData): Promise<void> {
 
   if (current === wanted) {
     await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-    done(guildId, "/moderation", "saved");
+    done(workspace, "/moderation", "saved");
   }
 
   const result =
@@ -253,11 +253,11 @@ export async function setExemption(formData: FormData): Promise<void> {
       ? await app.moderationSettings.toggleExemptChannel(guildId, targetId, actorId)
       : await app.moderationSettings.toggleExemptRole(guildId, targetId, actorId);
   await app.tasks.enqueue("settings-changed", guildId, { module: "moderation" });
-  done(guildId, "/moderation", result === "limit-reached" ? "limit-reached" : "saved");
+  done(workspace, "/moderation", result === "limit-reached" ? "limit-reached" : "saved");
 }
 
 export async function saveVoiceLobby(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const categoryId = text(formData, "categoryId");
 
   try {
@@ -266,8 +266,10 @@ export async function saveVoiceLobby(formData: FormData): Promise<void> {
         categoryId:
           categoryId === ""
             ? null
-            : await requireChannel(guildId, categoryId, [channelTypes.category]),
-        channelId: await requireChannel(guildId, text(formData, "channelId"), [channelTypes.voice]),
+            : await requireChannel(workspace, categoryId, [channelTypes.category]),
+        channelId: await requireChannel(workspace, text(formData, "channelId"), [
+          channelTypes.voice,
+        ]),
         createdAt: new Date(),
         createdBy: actorId,
         guildId,
@@ -277,11 +279,11 @@ export async function saveVoiceLobby(formData: FormData): Promise<void> {
       maximumLobbiesPerGuild,
     );
     await app.tasks.enqueue("settings-changed", guildId, { module: "voice-rooms" });
-    done(guildId, "/voice-rooms", result === "limit-reached" ? "limit-reached" : "saved");
+    done(workspace, "/voice-rooms", result === "limit-reached" ? "limit-reached" : "saved");
   } catch (error) {
     if (error instanceof VoiceRoomInputError) {
       await app.tasks.enqueue("settings-changed", guildId, { module: "voice-rooms" });
-      done(guildId, "/voice-rooms", "invalid");
+      done(workspace, "/voice-rooms", "invalid");
     }
 
     throw error;
@@ -289,14 +291,14 @@ export async function saveVoiceLobby(formData: FormData): Promise<void> {
 }
 
 export async function removeVoiceLobby(formData: FormData): Promise<void> {
-  const { guildId, services: app } = await authorize(formData);
+  const { guildId, services: app, workspace } = await authorize(formData);
   await app.voiceRooms.removeLobby(guildId, snowflake.parse(formData.get("channelId")));
   await app.tasks.enqueue("settings-changed", guildId, { module: "voice-rooms" });
-  done(guildId, "/voice-rooms", "saved");
+  done(workspace, "/voice-rooms", "saved");
 }
 
 export async function saveMusicSettings(formData: FormData): Promise<void> {
-  const { actorId, guildId, services: app } = await authorize(formData);
+  const { actorId, guildId, services: app, workspace } = await authorize(formData);
   const djRoleId = text(formData, "djRoleId");
 
   try {
@@ -304,16 +306,16 @@ export async function saveMusicSettings(formData: FormData): Promise<void> {
       guildId,
       {
         defaultVolume: Number(text(formData, "defaultVolume")),
-        djRoleId: djRoleId === "" ? null : await requireRole(guildId, djRoleId),
+        djRoleId: djRoleId === "" ? null : await requireRole(workspace, djRoleId),
       },
       actorId,
     );
     await app.tasks.enqueue("settings-changed", guildId, { module: "music" });
-    done(guildId, "/music", "saved");
+    done(workspace, "/music", "saved");
   } catch (error) {
     if (error instanceof MusicSettingsInputError) {
       await app.tasks.enqueue("settings-changed", guildId, { module: "music" });
-      done(guildId, "/music", "invalid");
+      done(workspace, "/music", "invalid");
     }
 
     throw error;

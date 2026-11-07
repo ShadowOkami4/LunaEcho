@@ -9,9 +9,8 @@ import {
   maximumBannedWordsPerGuild,
 } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor, type Scope } from "@/lib/workspace";
 
 import {
   addBannedWord,
@@ -44,18 +43,18 @@ function FlagForm({
   description,
   enabled,
   flag,
-  guildId,
   label,
+  scope,
 }: Readonly<{
   description: string;
   enabled: boolean;
   flag: string;
-  guildId: string;
+  scope: Scope;
   label: string;
 }>) {
   return (
     <form action={setModerationFlag} className="flex items-center justify-between gap-4">
-      <HiddenGuild guildId={guildId} />
+      <HiddenGuild scope={scope} />
       <input type="hidden" name="flag" value={flag} />
       <input type="hidden" name="enabled" value={String(!enabled)} />
       <div>
@@ -71,17 +70,15 @@ export default async function ModerationPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   const [settings, cases, channels, roles] = await Promise.all([
     app.moderationSettings.getSettings(guildId),
     app.moderationCases.listRecent(guildId, 20),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const channelName = new Map(channels.map((channel) => [channel.id, channel.name]));
   const roleName = new Map(roles.map((role) => [role.id, role.name]));
@@ -102,7 +99,7 @@ export default async function ModerationPage({
         description={automodProfileDescriptions[settings.automodProfile]}
       >
         <form action={applyAutomodProfile} className="flex flex-col gap-3">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           {/* An M3 connected button group: each button applies its profile at once. */}
           <div role="group" aria-label="AutoMod profile" className="flex flex-wrap gap-1">
             {configurableProfiles.map((profile) => {
@@ -171,7 +168,7 @@ export default async function ModerationPage({
                     action={updateAutomodRule}
                     className="flex flex-col gap-4 border-t border-outline/50 px-4 pt-4 pb-4"
                   >
-                    <HiddenGuild guildId={guildId} />
+                    <HiddenGuild scope={scope} />
                     <input type="hidden" name="kind" value={rule.kind} />
                     <p className="text-sm text-muted">{presentation.description}</p>
                     <SwitchField
@@ -242,11 +239,11 @@ export default async function ModerationPage({
             description="Delete messages that contain a listed word."
             enabled={settings.bannedWordsEnabled}
             flag="bannedWords"
-            guildId={guildId}
+            scope={scope}
             label="Word filter"
           />
           <form action={addBannedWord} className="flex gap-2">
-            <HiddenGuild guildId={guildId} />
+            <HiddenGuild scope={scope} />
             <input
               name="word"
               required
@@ -261,7 +258,7 @@ export default async function ModerationPage({
             {settings.bannedWords.map((word) => (
               <li key={word.normalizedValue}>
                 <form action={removeBannedWord}>
-                  <HiddenGuild guildId={guildId} />
+                  <HiddenGuild scope={scope} />
                   <input type="hidden" name="word" value={word.displayValue} />
                   <InputChip removeLabel={`Remove ${word.displayValue}`}>
                     {word.displayValue}
@@ -277,14 +274,14 @@ export default async function ModerationPage({
             description="Members who can moderate are never acted on by AutoMod."
             enabled={settings.staffExempt}
             flag="staffExempt"
-            guildId={guildId}
+            scope={scope}
             label="Staff bypass AutoMod"
           />
           <FlagForm
             description="Tell members privately when they are warned, timed out, or removed."
             enabled={settings.dmNotificationsEnabled}
             flag="dmNotifications"
-            guildId={guildId}
+            scope={scope}
             label="Notify members by DM"
           />
         </Card>
@@ -306,7 +303,7 @@ export default async function ModerationPage({
             <div key={kind} className="flex flex-col gap-3">
               <h3 className="font-medium">{kind === "channel" ? "Channels" : "Roles"}</h3>
               <form action={setExemption} className="flex gap-2">
-                <HiddenGuild guildId={guildId} />
+                <HiddenGuild scope={scope} />
                 <input type="hidden" name="kind" value={kind} />
                 <input type="hidden" name="exempt" value="true" />
                 <select name="targetId" required className={`${inputClass} flex-1`}>
@@ -322,7 +319,7 @@ export default async function ModerationPage({
                 {exemptIds.map((id) => (
                   <li key={id}>
                     <form action={setExemption}>
-                      <HiddenGuild guildId={guildId} />
+                      <HiddenGuild scope={scope} />
                       <input type="hidden" name="kind" value={kind} />
                       <input type="hidden" name="targetId" value={id} />
                       <input type="hidden" name="exempt" value="false" />

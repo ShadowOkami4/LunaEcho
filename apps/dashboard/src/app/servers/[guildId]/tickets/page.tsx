@@ -1,8 +1,7 @@
 import { maximumOpenTicketsPerMemberLimit, maximumTicketStaffRoles } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import {
   Button,
@@ -23,18 +22,16 @@ export default async function TicketsPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.tickets.invalidate(guildId);
   const [settings, open, channels, roles] = await Promise.all([
     app.tickets.getSettings(guildId),
     app.tickets.countOpen(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
 
@@ -47,7 +44,7 @@ export default async function TicketsPage({
         description={`Members open a private thread with your team by pressing a button. ${open} tickets are open right now.`}
       >
         <form action={saveTicketSettings} className="grid gap-3 sm:grid-cols-2">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <Field
             label="Ticket channel"
             hint="The panel is posted here, and tickets open as private threads below it."
@@ -120,7 +117,7 @@ export default async function TicketsPage({
         description="LunaEcho needs Create Private Threads, Send Messages in Threads, and Manage Threads in the ticket channel. Posting again replaces the old panel."
       >
         <form action={postTicketPanel}>
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <Button tone="neutral" icon="send">
             Post panel
           </Button>

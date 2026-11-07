@@ -50,8 +50,17 @@ services:
       LUNA_RUNTIME_MODE: cloud-shared
       NODE_ENV: production
       CUSTOM_BOT_TOKEN_KEY_FILE: /run/secrets/token-key
+      # Owners edit their Custom bots' server settings in each bot's own database, logged in
+      # with the password the orchestrator made for that bot (read-only secrets volume).
+      CUSTOM_DATABASE_HOST: custom-postgres:5432
+      CUSTOM_SECRETS_DIR: /run/custom-secrets
     secrets:
       - token-key
+    volumes:
+      - custom-secrets:/run/custom-secrets:ro
+    networks:
+      - default
+      - custom
     ports:
       - "127.0.0.1:3100:3000"
     depends_on:
@@ -64,6 +73,15 @@ services:
 
 volumes:
   postgres-data:
+  # Created by the Custom project (deploy/custom); start that once before this one.
+  custom-secrets:
+    name: lunaecho-custom-secrets
+    external: true
+
+networks:
+  custom:
+    name: lunaecho-custom
+    external: true
 
 secrets:
   # Seals Custom bot tokens; the same file the Custom orchestrator reads (owner uid 1000, mode 400).

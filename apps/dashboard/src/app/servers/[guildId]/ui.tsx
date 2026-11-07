@@ -3,6 +3,7 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 
 
 import { Icon, type IconName } from "@/components/icon";
 import { MultiSelectMenu, SelectMenu, type MenuOption } from "@/components/select-menu";
+import type { Scope } from "@/lib/scope";
 
 export { buttonClass, inputClass, textAreaClass, type ButtonTone } from "./styles";
 
@@ -253,8 +254,14 @@ export function ListItem({
 }
 
 /** M3 filled text field look, shared by inputs and selects. */
-export function HiddenGuild({ guildId }: Readonly<{ guildId: string }>) {
-  return <input type="hidden" name="guildId" value={guildId} />;
+/** Every settings form names its server and, for a Custom bot, the bot; actions re-check both. */
+export function HiddenGuild({ scope }: Readonly<{ scope: Scope }>) {
+  return (
+    <>
+      <input type="hidden" name="guildId" value={scope.guildId} />
+      <input type="hidden" name="botId" value={scope.botId ?? ""} />
+    </>
+  );
 }
 
 type Option = Readonly<{ color?: number; id: string; name: string; type?: number }>;

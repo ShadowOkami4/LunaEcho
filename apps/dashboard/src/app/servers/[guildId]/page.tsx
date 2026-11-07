@@ -2,9 +2,8 @@ import { planNames } from "@lunaecho/core";
 import Link from "next/link";
 
 import { Icon } from "@/components/icon";
-import { requireManageableGuild } from "@/lib/access";
 import { delay } from "@/lib/motion";
-import { services } from "@/lib/services";
+import { workspaceFor } from "@/lib/workspace";
 
 import { setModuleEnabled } from "./actions";
 import { moduleIcons, sectionGroups, sections } from "./sections";
@@ -16,12 +15,10 @@ export default async function ModulesPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, base, guildId, scope } = await workspaceFor(params);
   const [states, entitlement] = await Promise.all([
     app.moduleSettings.getStates(guildId),
     app.entitlements.resolveForGuild(guildId),
@@ -93,7 +90,7 @@ export default async function ModulesPage({
                           module.displayName
                         ) : (
                           <Link
-                            href={`/servers/${guildId}${href}`}
+                            href={`${base}${href}`}
                             className="inline-flex items-center gap-0.5 hover:text-primary"
                           >
                             {module.displayName}
@@ -112,7 +109,7 @@ export default async function ModulesPage({
                       <Chip tone="tertiary">Not in this plan</Chip>
                     ) : (
                       <form action={setModuleEnabled}>
-                        <HiddenGuild guildId={guildId} />
+                        <HiddenGuild scope={scope} />
                         <input type="hidden" name="moduleId" value={module.id} />
                         <input type="hidden" name="enabled" value={String(!enabled)} />
                         <Switch

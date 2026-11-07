@@ -1,8 +1,7 @@
 import { defaultSocialMessages, maximumSocialFeedsPerGuild } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import {
   Button,
@@ -23,16 +22,14 @@ export default async function SocialPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   const [feeds, channels, roles] = await Promise.all([
     app.social.list(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
   const channelName = new Map(channels.map((channel) => [channel.id, channel.name]));
@@ -66,7 +63,7 @@ export default async function SocialPage({
                 }
               >
                 <form action={removeSocialFeed}>
-                  <HiddenGuild guildId={guildId} />
+                  <HiddenGuild scope={scope} />
                   <input type="hidden" name="feedId" value={feed.id} />
                   <Button tone="remove" icon="delete">
                     Remove
@@ -85,7 +82,7 @@ export default async function SocialPage({
           description="Only uploads after adding are announced. Twitch needs TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET on the bot."
         >
           <form action={addSocialFeed} className="grid gap-3 sm:grid-cols-2">
-            <HiddenGuild guildId={guildId} />
+            <HiddenGuild scope={scope} />
             <Field label="Platform">
               <select name="platform" defaultValue="youtube" className={inputClass}>
                 <option value="youtube">YouTube</option>

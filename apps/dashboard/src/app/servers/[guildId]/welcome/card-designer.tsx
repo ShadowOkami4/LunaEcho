@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
 import { Loader } from "@/components/loader";
+import { scopeBase, type Scope } from "@/lib/scope";
 
 import { buttonClass, inputClass } from "../styles";
 
@@ -88,14 +89,14 @@ function ColorField({
  */
 export function CardDesigner({
   action,
-  guildId,
   hasBackgroundImage,
+  scope,
   initial,
 }: Readonly<{
   action: (formData: FormData) => Promise<void>;
-  guildId: string;
   hasBackgroundImage: boolean;
   initial: CardDesignerValues;
+  scope: Scope;
 }>) {
   const [values, setValues] = useState(initial);
   const [kind, setKind] = useState<"goodbye" | "welcome">("welcome");
@@ -118,7 +119,7 @@ export function CardDesigner({
   );
   // Typing should not ask the server for a new picture on every key press.
   const [previewSource, setPreviewSource] = useState(
-    `/servers/${guildId}/welcome/card-preview?${previewQuery}`,
+    `${scopeBase(scope)}/welcome/card-preview?${previewQuery}`,
   );
 
   // The picture that finished loading; while it differs from the source, a new one is coming.
@@ -144,16 +145,17 @@ export function CardDesigner({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPreviewSource(`/servers/${guildId}/welcome/card-preview?${previewQuery}`);
+      setPreviewSource(`${scopeBase(scope)}/welcome/card-preview?${previewQuery}`);
     }, 350);
     return () => {
       clearTimeout(timer);
     };
-  }, [guildId, previewQuery]);
+  }, [scope, previewQuery]);
 
   return (
     <form action={action} className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-      <input type="hidden" name="guildId" value={guildId} />
+      <input type="hidden" name="guildId" value={scope.guildId} />
+      <input type="hidden" name="botId" value={scope.botId ?? ""} />
 
       <div className="flex flex-col gap-3 xl:sticky xl:top-24 xl:self-start">
         <div className="relative overflow-hidden rounded-m3-xl shadow-edge bg-surface">

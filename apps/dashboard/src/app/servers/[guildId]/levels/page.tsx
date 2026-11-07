@@ -1,8 +1,7 @@
 import { maximumLevelRewards } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels, fetchGuildRoles } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import {
   Button,
@@ -24,20 +23,18 @@ export default async function LevelsPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   app.levels.invalidate(guildId);
   const [settings, rewards, leaderboard, members, channels, roles] = await Promise.all([
     app.levels.getSettings(guildId),
     app.levels.listRewards(guildId),
     app.levels.leaderboard(guildId, 10),
     app.levels.countMembers(guildId),
-    fetchGuildChannels(guildId),
-    fetchGuildRoles(guildId),
+    discord.channels(),
+    discord.roles(),
   ]);
   const textChannels = channels.filter((channel) => channel.type === channelTypes.text);
   const chatChannels = channels.filter(
@@ -55,7 +52,7 @@ export default async function LevelsPage({
         description="Members earn XP for chatting and for time in voice. /rank shows their card and the leaderboard."
       >
         <form action={saveLevelSettings} className="grid gap-3 sm:grid-cols-2">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <Field label="XP per message (minimum)">
             <input
               name="messageXpMin"
@@ -164,7 +161,7 @@ export default async function LevelsPage({
                 supporting={`Gives @${roleName.get(reward.roleId) ?? "deleted role"}`}
               >
                 <form action={removeLevelReward}>
-                  <HiddenGuild guildId={guildId} />
+                  <HiddenGuild scope={scope} />
                   <input type="hidden" name="level" value={reward.level} />
                   <Button tone="remove" icon="delete">
                     Remove
@@ -175,7 +172,7 @@ export default async function LevelsPage({
           </ul>
         )}
         <form action={saveLevelReward} className="grid gap-3 sm:grid-cols-3">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <Field label="Level">
             <input name="level" type="number" min={1} max={1000} required className={inputClass} />
           </Field>

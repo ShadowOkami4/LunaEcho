@@ -228,6 +228,36 @@ export class CustomBotService {
     return toBot(row);
   }
 
+  /**
+   * What the dashboard needs to edit a customer's bot's server settings: its own database and
+   * its token, so Discord answers as that bot. Only the owner gets it; anyone else sees not-found.
+   */
+  public async openOwned(
+    ownerUserId: string,
+    botId: string,
+  ): Promise<Readonly<{ bot: CustomBot; databaseName: string; token: string }>> {
+    const [row] = await this.database
+      .select()
+      .from(customBots)
+      .where(
+        and(
+          eq(customBots.id, botId),
+          eq(customBots.ownerUserId, ownerUserId),
+          ne(customBots.desiredState, "deleted"),
+        ),
+      );
+
+    if (row === undefined) {
+      throw new CustomBotError("not-found", "This bot does not exist.");
+    }
+
+    return {
+      bot: toBot(row),
+      databaseName: row.databaseName,
+      token: this.vault.open(row.sealedToken, row.id),
+    };
+  }
+
   /** Registers a bot whose token Discord has just confirmed, and asks for it to be started. */
   public async create(
     ownerUserId: string,

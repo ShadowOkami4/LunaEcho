@@ -4,9 +4,8 @@ import {
   maximumRoomUserLimit,
 } from "@lunaecho/modules";
 
-import { requireManageableGuild } from "@/lib/access";
-import { channelTypes, fetchGuildChannels } from "@/lib/discord";
-import { services } from "@/lib/services";
+import { channelTypes } from "@/lib/discord";
+import { workspaceFor } from "@/lib/workspace";
 
 import { removeVoiceLobby, saveVoiceLobby } from "../actions";
 import { Button, Card, HiddenGuild, inputClass, ListItem, Notice } from "../ui";
@@ -17,16 +16,14 @@ export default async function VoiceRoomsPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Promise<{ guildId: string }>;
+  params: Promise<{ botId?: string; guildId: string }>;
   searchParams: Promise<{ notice?: string }>;
 }>) {
-  const { guildId } = await params;
-  await requireManageableGuild(guildId);
-  const app = await services();
+  const { app, discord, guildId, scope } = await workspaceFor(params);
   const [lobbies, rooms, channels] = await Promise.all([
     app.voiceRooms.listLobbies(guildId),
     app.voiceRooms.listRooms(guildId),
-    fetchGuildChannels(guildId),
+    discord.channels(),
   ]);
   const channelName = new Map(channels.map((channel) => [channel.id, channel.name]));
   const lobbyIds = new Set(lobbies.map((lobby) => lobby.channelId));
@@ -66,7 +63,7 @@ export default async function VoiceRoomsPage({
                 }
               >
                 <form action={removeVoiceLobby}>
-                  <HiddenGuild guildId={guildId} />
+                  <HiddenGuild scope={scope} />
                   <input type="hidden" name="channelId" value={lobby.channelId} />
                   <Button tone="remove" icon="delete">
                     Remove
@@ -84,7 +81,7 @@ export default async function VoiceRoomsPage({
         description="Use {user} in the name to insert the owner's display name."
       >
         <form action={saveVoiceLobby} className="grid gap-3 sm:grid-cols-2">
-          <HiddenGuild guildId={guildId} />
+          <HiddenGuild scope={scope} />
           <label className="flex flex-col gap-1 text-sm">
             Voice channel
             <select name="channelId" required className={inputClass}>

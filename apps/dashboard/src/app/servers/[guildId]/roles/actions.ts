@@ -3,7 +3,7 @@
 import { RoleMenuInputError, type RoleMenuOption } from "@lunaecho/modules";
 import { z } from "zod";
 
-import { channelTypes, fetchGuildRoles } from "@/lib/discord";
+import { channelTypes } from "@/lib/discord";
 
 import { SettingsForm } from "../form";
 
@@ -16,9 +16,7 @@ export async function saveRoleMenu(formData: FormData): Promise<void> {
   form.app.roleMenus.invalidate(form.guildId);
   const previous =
     menuId === undefined ? undefined : await form.app.roleMenus.get(form.guildId, menuId);
-  const roleNames = new Map(
-    (await fetchGuildRoles(form.guildId)).map((role) => [role.id, role.name]),
-  );
+  const roleNames = new Map((await form.discord.roles()).map((role) => [role.id, role.name]));
   const options: RoleMenuOption[] = (await form.roles("roleIds")).map((roleId) => ({
     description: form.optionalText(`description-${roleId}`),
     emoji: form.optionalText(`emoji-${roleId}`),
