@@ -136,8 +136,10 @@ export async function createApplication(
         taskRunner.start();
         return Promise.resolve();
       },
-      // A Custom bot owns its application, so it registers LunaEcho's commands there itself.
-      ...(config.runtimeMode === "cloud-custom"
+      // Managed bots (Cloud and Custom) keep their application's commands in sync themselves, so
+      // no manual deploy is forgotten and old per-server commands disappear. Self-hosted
+      // operators deploy by hand, since they may test commands in their own server on purpose.
+      ...(config.runtimeMode !== "self-hosted"
         ? [
             async (ready: Client<true>) => {
               await syncApplicationCommands(

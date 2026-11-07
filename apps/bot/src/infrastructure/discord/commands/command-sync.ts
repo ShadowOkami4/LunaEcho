@@ -21,7 +21,7 @@ export interface CommandSyncTarget {
 export type CommandSyncResult = Readonly<{ clearedGuilds: number; commandCount: number }>;
 
 /**
- * A Custom bot owns its Discord application, so it keeps LunaEcho's commands registered there by
+ * A managed bot (Cloud or Custom) keeps LunaEcho's commands registered with its application by
  * itself instead of relying on a manual deploy. Global commands are replaced on every start;
  * Discord leaves unchanged ones as they are, so a restart costs nothing. Per-server commands left
  * over from whatever the application ran before would show up next to LunaEcho's and fail, so
