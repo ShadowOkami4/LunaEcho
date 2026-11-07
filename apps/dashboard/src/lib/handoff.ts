@@ -1,8 +1,17 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-export type BillingAction = "checkout" | "portal";
+export type BillingAction = "checkout" | "portal" | "slots";
 
-export type Handoff = Readonly<{ action: BillingAction; expires: number; userId: string }>;
+/** The most Custom bots one customer can pay for. */
+export const maximumBillingSlots = 10;
+
+export type Handoff = Readonly<{
+  action: BillingAction;
+  expires: number;
+  /** Only for "slots": how many bots the customer wants to pay for. */
+  slots?: number;
+  userId: string;
+}>;
 
 /** A handoff link is only good for a few minutes. */
 const lifetimeSeconds = 300;
@@ -13,13 +22,15 @@ function sign(payload: string, secret: string): string {
 
 /**
  * `<payload>.<signature>`, both base64url. The payload is JSON with the action, the Discord user,
- * and an expiry in Unix seconds; the signature is HMAC-SHA256 with the shared secret.
+ * an expiry in Unix seconds, a nonce, and for "slots" the number of bots (1 to 10); the signature
+ * is HMAC-SHA256 with the shared secret.
  */
 export function signHandoff(
   userId: string,
   action: BillingAction,
   secret: string,
   now: Date = new Date(),
+  slots?: number,
 ): string {
   const payload = Buffer.from(
     JSON.stringify({
@@ -27,6 +38,7 @@ export function signHandoff(
       expires: Math.floor(now.getTime() / 1000) + lifetimeSeconds,
       nonce: randomBytes(9).toString("base64url"),
       userId,
+      ...(slots === undefined ? {} : { slots }),
     }),
   ).toString("base64url");
   return `${payload}.${sign(payload, secret)}`;
@@ -62,10 +74,15 @@ export function verifyHandoff(
     return undefined;
   }
 
-  const { action, expires, userId } = data;
+  const { action, expires, slots, userId } = data;
 
   if (
-    (action !== "checkout" && action !== "portal") ||
+    (action !== "checkout" && action !== "portal" && action !== "slots") ||
+    (action === "slots" &&
+      (typeof slots !== "number" ||
+        !Number.isInteger(slots) ||
+        slots < 1 ||
+        slots > maximumBillingSlots)) ||
     typeof userId !== "string" ||
     !/^\d{17,20}$/.test(userId) ||
     typeof expires !== "number" ||
@@ -74,5 +91,7 @@ export function verifyHandoff(
     return undefined;
   }
 
-  return { action, expires, userId };
+  return action === "slots" && typeof slots === "number"
+    ? { action, expires, slots, userId }
+    : { action, expires, userId };
 }

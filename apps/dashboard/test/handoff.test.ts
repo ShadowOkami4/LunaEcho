@@ -28,4 +28,14 @@ describe("billing handoff", () => {
     ).toBeUndefined();
     expect(verifyHandoff("not-a-token", secret, now)).toBeUndefined();
   });
+
+  it("carries the number of bots for a change, 1 to 10 only", () => {
+    expect(verifyHandoff(signHandoff(user, "slots", secret, now, 3), secret, now)).toMatchObject({
+      action: "slots",
+      slots: 3,
+    });
+    expect(verifyHandoff(signHandoff(user, "slots", secret, now), secret, now)).toBeUndefined();
+    expect(verifyHandoff(signHandoff(user, "slots", secret, now, 0), secret, now)).toBeUndefined();
+    expect(verifyHandoff(signHandoff(user, "slots", secret, now, 11), secret, now)).toBeUndefined();
+  });
 });

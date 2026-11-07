@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { requireSession } from "@/lib/access";
 import { billingRedirectUrl } from "@/lib/billing";
+import { maximumBillingSlots } from "@/lib/handoff";
 import { services } from "@/lib/services";
 
 import { errorNoticeCookie } from "../servers/[guildId]/ui";
@@ -67,6 +68,24 @@ export async function openBilling(formData: FormData): Promise<void> {
   const session = await requireSession();
   const action = z.enum(["checkout", "portal"]).parse(formData.get("action"));
   const url = billingRedirectUrl(session.user.id, action);
+
+  if (url === undefined) {
+    finish("invalid");
+  }
+
+  redirect(url);
+}
+
+/** A paying customer picks a new number of bots; billing settles the difference with Stripe. */
+export async function changeSlots(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const slots = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(maximumBillingSlots)
+    .parse(formData.get("slots"));
+  const url = billingRedirectUrl(session.user.id, "slots", slots);
 
   if (url === undefined) {
     finish("invalid");

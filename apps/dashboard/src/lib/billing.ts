@@ -14,7 +14,12 @@ export function billingAvailable(): boolean {
   return BILLING_URL !== undefined && BILLING_HANDOFF_SECRET !== undefined;
 }
 
-export function billingRedirectUrl(userId: string, action: BillingAction): string | undefined {
+/** `slots` is the number of bots wanted, for the "slots" action only. */
+export function billingRedirectUrl(
+  userId: string,
+  action: BillingAction,
+  slots?: number,
+): string | undefined {
   const { BILLING_HANDOFF_SECRET, BILLING_URL } = env();
 
   if (BILLING_URL === undefined || BILLING_HANDOFF_SECRET === undefined) {
@@ -22,6 +27,9 @@ export function billingRedirectUrl(userId: string, action: BillingAction): strin
   }
 
   const url = new URL(action, BILLING_URL.endsWith("/") ? BILLING_URL : `${BILLING_URL}/`);
-  url.searchParams.set("token", signHandoff(userId, action, BILLING_HANDOFF_SECRET));
+  url.searchParams.set(
+    "token",
+    signHandoff(userId, action, BILLING_HANDOFF_SECRET, new Date(), slots),
+  );
   return url.toString();
 }

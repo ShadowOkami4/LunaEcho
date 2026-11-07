@@ -7,6 +7,7 @@ import { Icon } from "@/components/icon";
 import { Loader } from "@/components/loader";
 import { requireSession } from "@/lib/access";
 import { billingAvailable } from "@/lib/billing";
+import { maximumBillingSlots } from "@/lib/handoff";
 import { botAvatarUrl, customBotInviteUrl } from "@/lib/discord";
 import { services } from "@/lib/services";
 import { customServersAvailable } from "@/lib/workspace";
@@ -22,6 +23,7 @@ import {
 } from "../servers/[guildId]/ui";
 import {
   addCustomBot,
+  changeSlots,
   openBilling,
   removeCustomBot,
   replaceCustomBotToken,
@@ -159,14 +161,46 @@ export default async function CustomBotsPage({
               </span>
             )}
             {billing && !grant.partner && grant.slots > 0 && (
-              <form action={openBilling} className="ml-auto">
-                <input type="hidden" name="action" value="portal" />
-                <Button tone="outlined" icon="tune">
-                  Manage billing
-                </Button>
-              </form>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                {/* Stripe's portal cannot change one item of this subscription, so it is here. */}
+                <form action={changeSlots} className="flex items-center gap-2">
+                  <label className="flex items-center gap-2">
+                    <span className="sr-only">Number of bots</span>
+                    <select
+                      name="slots"
+                      defaultValue={grant.slots}
+                      className={`${inputClass} w-auto`}
+                    >
+                      {Array.from({ length: maximumBillingSlots }, (_, index) => index + 1).map(
+                        (count) => (
+                          <option key={count} value={count}>
+                            {count} {count === 1 ? "bot" : "bots"}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+                  <Button tone="neutral" icon="tune">
+                    Change
+                  </Button>
+                </form>
+                <form action={openBilling}>
+                  <input type="hidden" name="action" value="portal" />
+                  <Button tone="outlined" icon="openInNew">
+                    Billing
+                  </Button>
+                </form>
+              </div>
             )}
           </div>
+          {billing && !grant.partner && grant.slots > 0 && (
+            <p className="-mt-5 text-xs text-faint">
+              Changing the number of bots is settled right away: more bots are charged for the rest
+              of the month, fewer leave a credit for the next invoice. With fewer slots than bots,
+              the newest bots stop and keep their settings. Billing has your card, invoices, and
+              cancelling.
+            </p>
+          )}
 
           {owned.length > 0 && (
             <ul className="flex flex-col">
