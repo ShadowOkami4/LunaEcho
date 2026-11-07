@@ -11,12 +11,18 @@ import {
   ModuleSettingsService,
 } from "@lunaecho/modules";
 
+import type { Client } from "discord.js";
+
 import type { AppConfig } from "../config/environment.js";
 import type {
   BotModule,
   ModuleContext,
   TaskHandler,
 } from "../infrastructure/discord/bot-module.js";
+import {
+  discordCommandSyncTarget,
+  syncApplicationCommands,
+} from "../infrastructure/discord/commands/command-sync.js";
 import { ComponentInteractionRegistry } from "../infrastructure/discord/commands/component-interaction-registry.js";
 import { CommandRegistry } from "../infrastructure/discord/commands/command-registry.js";
 import { InteractionDispatcher } from "../infrastructure/discord/commands/interaction-dispatcher.js";
@@ -27,6 +33,7 @@ import {
 } from "../infrastructure/discord/gateway-intents.js";
 import { BotTaskRunner } from "../infrastructure/tasks/bot-task-runner.js";
 import { createAutomationModule } from "../modules/automation/automation-module.js";
+import { createCommandDefinitions } from "../modules/command-definitions.js";
 import { createLevelsModule } from "../modules/levels/levels-module.js";
 import { createLogsModule } from "../modules/logs/logs-module.js";
 import { createModerationModule } from "../modules/moderation/moderation-module.js";
@@ -129,6 +136,18 @@ export async function createApplication(
         taskRunner.start();
         return Promise.resolve();
       },
+      // A Custom bot owns its application, so it registers LunaEcho's commands there itself.
+      ...(config.runtimeMode === "cloud-custom"
+        ? [
+            async (ready: Client<true>) => {
+              await syncApplicationCommands(
+                discordCommandSyncTarget(ready),
+                createCommandDefinitions(),
+                logger.child({ component: "discord.commands" }),
+              );
+            },
+          ]
+        : []),
     ],
     token: config.discord.token,
   });
